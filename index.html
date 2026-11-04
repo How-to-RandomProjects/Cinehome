@@ -1,0 +1,2410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CineHome</title>
+<style>
+:root {
+  --bg: #09090b;
+  --surface: #121217;
+  --surface-hover: #181820;
+  --surface-active: #1f1f2a;
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-hover: rgba(255, 255, 255, 0.28);
+  --border-active: #ffffff;
+  --white: #ffffff;
+  --text-main: #f4f4f5;
+  --text-muted: #a1a1aa;
+  --gold: #facc15;
+  --mint: #4ef2bb;
+  --danger: #f87171;
+  --rail-gap: clamp(16px, 1.8vw, 24px);
+  --row-gap: clamp(18px, 2.6vh, 28px);
+  --arrow-gutter: clamp(36px, 3.2vw, 48px);
+  --card-height: clamp(180px, 28vh, 265px);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0;
+  width: 100%; height: 100vh;
+  max-width: 100vw; max-height: 100vh;
+  overflow: hidden !important;
+  background: var(--bg); color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  display: flex; flex-direction: column; position: relative;
+  -webkit-font-smoothing: antialiased;
+  scrollbar-width: none !important;
+}
+html::-webkit-scrollbar, body::-webkit-scrollbar {
+  display: none !important; width: 0 !important; height: 0 !important;
+}
+
+@keyframes ambientDrift {
+  0% { transform: scale(1) translate3d(0, 0, 0); }
+  50% { transform: scale(1.04) translate3d(-1%, -1.5%, 0); }
+  100% { transform: scale(1) translate3d(0, 0, 0); }
+}
+
+@keyframes cardDropIn {
+  0% { opacity: 0; transform: translate3d(0, -18px, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+.ambient-bloom {
+  position: fixed; inset: -6vw; width: 112vw; height: 112vh;
+  z-index: 0; opacity: 0; transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none; background-size: cover; background-position: center center;
+  filter: blur(48px) brightness(0.42) saturate(145%); will-change: opacity, transform;
+}
+.ambient-bloom.visible { opacity: 1; animation: ambientDrift 20s ease-in-out infinite; }
+
+#backdropOverlay {
+  position: fixed; inset: 0; z-index: 1;
+  background: linear-gradient(180deg, rgba(9, 9, 11, 0.35) 0%, rgba(9, 9, 11, 0.82) 65%, #09090b 100%);
+  pointer-events: none;
+}
+
+header {
+  height: clamp(54px, 7.5vh, 68px); padding: 0 clamp(16px, 2.5vw, 40px);
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border-subtle); background: rgba(9, 9, 11, 0.88);
+  backdrop-filter: blur(16px); position: relative; z-index: 100; flex-shrink: 0;
+}
+.brand-group { display: flex; align-items: baseline; gap: 12px; }
+h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white); margin: 0; }
+.header-actions { display: flex; align-items: center; gap: 10px; }
+#status { color: var(--text-muted); font-size: clamp(12px, 1vw, 14px); font-weight: 500; white-space: nowrap; margin-right: 6px; }
+
+.dpad-nav-item {
+  background: rgba(255, 255, 255, 0.08); border: 1.5px solid var(--border-subtle);
+  color: var(--text-main); padding: 7px 14px; border-radius: 9px;
+  font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex;
+  align-items: center; gap: 6px; transition: all 0.2s ease; white-space: nowrap; outline: none;
+}
+.dpad-nav-item:hover, .dpad-nav-item.focused {
+  background: var(--white); color: #000; border-color: var(--white);
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.4);
+}
+
+#home { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 2vh 0 6vh; scroll-behavior: smooth; position: relative; z-index: 10; scrollbar-width: none; }
+#home::-webkit-scrollbar { display: none; }
+
+.shelf { padding: 0 clamp(20px, 3vw, 44px); margin-bottom: clamp(24px, 4vh, 44px); position: relative; }
+.shelf-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8vh; padding: 0 calc(var(--arrow-gutter) + 8px); }
+.shelf h2 { font-size: clamp(16px, 1.5vw, 22px); font-weight: 700; color: var(--text-main); margin: 0; }
+.shelf.inactive h2 { color: #71717a; }
+.shelf-counter { font-size: 13px; color: var(--text-muted); font-weight: 600; }
+
+.shelf-row { display: flex; align-items: center; position: relative; width: 100%; }
+.nav-arrow { width: var(--arrow-gutter); height: 60px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0; transition: opacity 0.2s; z-index: 20; }
+.nav-arrow svg { width: 22px; height: 48px; stroke: rgba(255, 255, 255, 0.38); stroke-width: 3.5; fill: none; }
+.nav-arrow.active { opacity: 1; }
+
+.rail-viewport { flex: 1 1 0%; min-width: 0; width: 0; overflow: visible; position: relative; }
+.rail { width: 100%; display: flex; gap: var(--rail-gap); overflow-x: auto; overflow-y: visible; padding: 14px 4px 18px 4px; scroll-behavior: smooth; scrollbar-width: none; }
+.rail::-webkit-scrollbar { display: none; }
+
+.card, .resultCard {
+  height: var(--card-height); background: var(--surface); border: 1px solid var(--border-subtle);
+  border-radius: clamp(14px, 1.2vw, 18px); padding: clamp(10px, 1vw, 14px); display: flex; gap: 14px;
+  cursor: pointer; position: relative; transition: transform 0.2s, border-color 0.18s, background 0.18s;
+}
+.card { flex: 0 0 calc((100% - (2 * var(--rail-gap))) / 3); width: calc((100% - (2 * var(--rail-gap))) / 3); }
+.card.selected, .resultCard.selected { background: var(--surface-active); border: 2px solid var(--white); transform: translate3d(0, -6px, 0); z-index: 10; }
+
+.resultCard.dropping { animation: cardDropIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+.poster-box { height: 100%; aspect-ratio: 2 / 3; width: auto; position: relative; border-radius: 10px; overflow: hidden; flex-shrink: 0; background: #000; border: 1px solid rgba(255, 255, 255, 0.08); }
+.poster { width: 100%; height: 100%; object-fit: cover; display: block; }
+.card-badge { position: absolute; top: 6px; left: 6px; background: rgba(0, 0, 0, 0.85); color: var(--white); font-size: 11px; font-weight: 700; padding: 3px 7px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.3); }
+
+.details { min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: flex-start; overflow: hidden; }
+.card h3, .resultCard h3 { font-size: clamp(14px, 1.25vw, 18px); font-weight: 700; margin: 2px 0 6px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--white); }
+.meta-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+.type-chip { background: rgba(255, 255, 255, 0.12); padding: 2px 8px; border-radius: 999px; color: var(--white); font-weight: 700; font-size: 10px; }
+.rating-chip { color: var(--gold); font-weight: 700; display: flex; align-items: center; gap: 3px; }
+.card p, .resultCard p { font-size: 12px; color: #a1a1aa; margin: 0; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* In-Page Zero-Overflow Player Screen */
+#player {
+  position: fixed; inset: 0; z-index: 500;
+  width: 100vw; height: 100vh;
+  overflow: hidden !important;
+  background: #000; display: none;
+}
+#playerFrame {
+  width: 100%; height: 100%;
+  border: 0; outline: none; background: #000;
+  overflow: hidden;
+}
+
+.player-controls-hud {
+  position: fixed; top: 16px; left: 16px; right: 16px; z-index: 520;
+  display: flex; align-items: center; justify-content: space-between;
+  opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+}
+.player-controls-hud.active { opacity: 1; pointer-events: auto; }
+
+.hud-btn {
+  background: rgba(14, 14, 20, 0.9); border: 1.5px solid rgba(255, 255, 255, 0.22);
+  color: #fff; padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; gap: 8px; backdrop-filter: blur(12px);
+  outline: none; transition: all 0.2s;
+}
+.hud-btn:hover, .hud-btn.focused {
+  background: var(--white); color: #000; border-color: #fff;
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.4);
+}
+
+#playerStreamBanner {
+  position: fixed; top: 22px; left: 50%; transform: translateX(-50%);
+  z-index: 535; background: rgba(18, 18, 26, 0.96); border: 1.5px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px; padding: 10px 24px; color: var(--white); font-size: 13px; font-weight: 600;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.85); backdrop-filter: blur(16px);
+  display: none; pointer-events: none; text-align: center; white-space: nowrap;
+}
+
+/* Setup-Box Optimized Center Notifier */
+#playerCenterHelper {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 9999; background: #111118; border: 2px solid var(--white);
+  border-radius: 18px; padding: 22px 30px; text-align: center; max-width: 500px; width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.98);
+  display: none; transition: opacity 0.25s ease;
+}
+#playerCenterHelper.fadeout { opacity: 0; pointer-events: none; }
+#playerCenterHelper h3 { margin: 0 0 8px; font-size: 17px; color: var(--white); }
+#playerCenterHelper p { margin: 0 0 16px; font-size: 13px; color: var(--text-muted); line-height: 1.4; }
+.helper-btn-grid { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.helper-action-btn {
+  background: rgba(255, 255, 255, 0.08); border: 1.5px solid var(--border-subtle);
+  color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; outline: none;
+}
+.helper-action-btn:hover, .helper-action-btn.focused {
+  background: var(--white); color: #000; border-color: var(--white);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.35);
+}
+
+#help {
+  height: clamp(34px, 5vh, 44px); background: rgba(9, 9, 11, 0.92); border-top: 1px solid var(--border-subtle);
+  display: flex; align-items: center; padding: 0 clamp(20px, 3vw, 44px); font-size: 12px; color: var(--text-muted);
+  gap: 16px; position: relative; z-index: 20;
+}
+.key-tag { color: var(--white); background: rgba(255, 255, 255, 0.12); padding: 2px 7px; border-radius: 6px; font-weight: 700; }
+
+#searchPage { display: none; position: fixed; inset: 0; z-index: 100; padding: 20px 44px 24px; background: #09090b; flex-direction: column; overflow: hidden; }
+.searchHeader { height: 56px; display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+
+#searchInput {
+  flex: 1; max-width: 520px; padding: 11px 16px; font-size: 15px; border-radius: 12px;
+  border: 1.5px solid var(--border-subtle); background: rgba(255,255,255,0.06); color: #fff;
+  outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+}
+#searchInput:focus, #searchInput.focused {
+  border-color: var(--white);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.45);
+}
+
+#resultsGrid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: var(--card-height); gap: var(--row-gap) var(--rail-gap); padding: 16px 4px 50px 4px; }
+
+/* Modals */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 600;
+  background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(16px);
+  align-items: center; justify-content: center;
+}
+.modal-box {
+  background: #101016; border: 1.5px solid rgba(255, 255, 255, 0.25); border-radius: 20px;
+  max-width: 640px; width: 92%; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.95);
+  text-align: left; max-height: 85vh; display: flex; flex-direction: column;
+  overflow: hidden; position: relative;
+}
+.modal-body {
+  padding: 24px 30px 16px 30px;
+  overflow-y: auto; overflow-x: hidden;
+  flex: 1;
+  scrollbar-width: none !important;
+}
+.modal-body::-webkit-scrollbar { display: none !important; }
+
+.modal-actions-sticky {
+  padding: 14px 30px;
+  background: #0d0d12;
+  border-top: 1px solid var(--border-subtle);
+  display: flex; justify-content: flex-end; gap: 10px;
+  flex-shrink: 0;
+}
+
+.modal-box h2 { color: var(--white); margin: 0 0 8px 0; font-size: 22px; }
+.modal-box p { color: var(--text-muted); font-size: 13.5px; margin-bottom: 16px; line-height: 1.4; }
+.modal-input {
+  width: 100%; padding: 11px 14px; border-radius: 10px; border: 1.5px solid var(--border-subtle);
+  background: #09090b; color: #fff; font-size: 14px; margin-bottom: 12px; outline: none;
+}
+.modal-input:focus, .modal-input.focused {
+  border-color: var(--white); box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+}
+
+.modal-btn {
+  padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 700;
+  cursor: pointer; border: 1.5px solid transparent; white-space: nowrap; outline: none;
+}
+.modal-btn.focused {
+  outline: 2px solid var(--white); box-shadow: 0 0 14px rgba(255,255,255,0.4);
+}
+.btn-primary { background: var(--white); color: #000; }
+.btn-secondary { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid var(--border-subtle); }
+.btn-danger { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+
+.player-item-card { background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; width: 100%; min-width: 0; }
+.player-item-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
+.player-item-title { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.player-mirrors-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.mirror-tag { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); padding: 3px 8px; border-radius: 6px; font-size: 11.5px; color: #fff; display: inline-flex; align-items: center; gap: 6px; }
+.mirror-tag.active-mirror { border-color: var(--white); background: rgba(255, 255, 255, 0.18); font-weight: 700; }
+
+.shelf-toggle-item {
+  display: flex; align-items: center; justify-content: space-between; padding: 10px 14px;
+  background: rgba(255,255,255,0.03); border-radius: 9px; margin-bottom: 8px;
+  border: 1.5px solid var(--border-subtle); outline: none; cursor: pointer;
+}
+.shelf-toggle-item.focused {
+  border-color: var(--white); background: rgba(255,255,255,0.1);
+  box-shadow: 0 0 12px rgba(255,255,255,0.3);
+}
+.switch-input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--white); pointer-events: none; }
+
+.remote-type-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 18px 0; }
+.remote-type-card {
+  border: 1.5px solid var(--border-subtle); border-radius: 12px; padding: 18px 16px;
+  cursor: pointer; background: rgba(255,255,255,0.03); text-align: center; transition: all 0.2s;
+  outline: none; position: relative;
+}
+.remote-type-card.focused {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+}
+.remote-type-card.selected {
+  border-color: var(--white) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.35) !important;
+}
+.remote-type-card h3 { margin: 0 0 6px; font-size: 15px; color: #fff; }
+.remote-type-card p { margin: 0 0 8px 0; font-size: 12px; color: var(--text-muted); }
+.active-pill {
+  display: none; background: var(--white); color: #000;
+  font-size: 10.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px;
+  margin: 0 auto; width: fit-content; text-transform: uppercase;
+}
+.remote-type-card.selected .active-pill {
+  display: block;
+}
+</style>
+</head>
+<body>
+
+<div id="ambientA" class="ambient-bloom visible"></div>
+<div id="ambientB" class="ambient-bloom"></div>
+<div id="backdropOverlay"></div>
+
+<header>
+  <div class="brand-group"><h1>CineHome</h1></div>
+  <div class="header-actions">
+    <div id="status">Loading catalog...</div>
+    <button id="btnSearchNav" class="dpad-nav-item" type="button" data-col="0">🔍 Search</button>
+    <button id="btnManagePreferences" class="dpad-nav-item" type="button" data-col="1">⚙ Shelves</button>
+    <button id="btnManagePlayers" class="dpad-nav-item" type="button" data-col="2">🎬 Players</button>
+    <button id="btnConfigRemote" class="dpad-nav-item" type="button" data-col="3">🎮 Remote</button>
+  </div>
+</header>
+
+<main id="home"></main>
+
+<div id="help"></div>
+
+<div id="searchPage">
+  <div class="searchHeader">
+    <h2 id="searchTitle" style="margin:0;">Search</h2>
+    <input id="searchInput" placeholder="Search movies & TV series..." autocomplete="off">
+    <button id="searchButton" class="dpad-nav-item" type="button">Search</button>
+    <button id="btnExitSearch" class="dpad-nav-item" type="button">Back</button>
+  </div>
+  <div id="resultsInfo" style="color:var(--text-muted);font-size:13px;margin-bottom:10px;">Type a title to search.</div>
+  <div class="search-grid-wrapper"><div id="resultsGrid"></div></div>
+</div>
+
+<div id="player">
+  <div id="playerHudBar" class="player-controls-hud">
+    <button id="playerExitTrigger" class="hud-btn" type="button" data-hud-idx="0">✕ Back (0)</button>
+    <div style="display:flex;gap:8px;">
+      <button id="btnSwitchPlayerHud" class="hud-btn" type="button" data-hud-idx="1">🔄 Switch Mirror / Player (3)</button>
+      <button id="btnLaunchExternalHud" class="hud-btn" type="button" data-hud-idx="2">🚀 Open External (7)</button>
+    </div>
+  </div>
+
+  <div id="playerStreamBanner"></div>
+
+  <!-- Setup-Box Safe Center Helper -->
+  <div id="playerCenterHelper">
+    <h3 id="helperPlayerTitle">Is the video playing?</h3>
+    <p id="helperPlayerDesc">If screen is black or buffering, pick an option below. Otherwise this box will close automatically in <b id="helperCountdown">6</b>s.</p>
+    <div class="helper-btn-grid">
+      <button id="btnHelperSwitch" class="helper-action-btn focused" type="button" data-help-idx="0">Switch Mirror (3)</button>
+      <button id="btnHelperExternal" class="helper-action-btn" type="button" data-help-idx="1">Open External (7)</button>
+      <button id="btnHelperExit" class="helper-action-btn" type="button" data-help-idx="2">Exit (0)</button>
+    </div>
+  </div>
+
+  <iframe 
+    id="playerFrame" 
+    allow="autoplay; fullscreen; picture-in-picture; encrypted-media" 
+    allowfullscreen>
+  </iframe>
+</div>
+
+<!-- Player Sources Modal -->
+<div id="playerModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-body" id="playerModalBody">
+      <h2>Streaming Player Sources</h2>
+      <p>Manage your streaming sources. Add new providers by supplying both <b>Movie</b> and <b>Series / TV</b> URLs to prevent playback errors[cite: 8].</p>
+      
+      <div id="playerListContainer"></div>
+
+      <div style="border-top:1px solid var(--border-subtle);padding-top:14px;margin-top:14px;">
+        <h3 style="font-size:14px;margin:0 0 10px;color:var(--white);">+ Add Custom Streaming Source</h3>
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">1. Paste Movie URL Example (e.g. <code>https://cinejoy.pk/watch/movie/1400940</code>):</label>
+        <input id="inputAddMovieUrl" class="modal-input" placeholder="https://domain.com/movie/12345">
+        
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">2. Paste TV Show URL Example (e.g. <code>https://cinemaos.tech/player/213375?theme=ffffff&type=tv&s=1&e=1</code>):</label>
+        <input id="inputAddTvUrl" class="modal-input" placeholder="https://domain.com/tv/12345/1/1 (Optional)">
+      </div>
+    </div>
+    
+    <div class="modal-actions-sticky">
+      <button id="btnAddPlayerSubmit" class="modal-btn btn-primary" type="button">Add Source</button>
+      <button id="btnClosePlayerModal" class="modal-btn btn-secondary" type="button">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Player / Add Mirrors Modal -->
+<div id="editPlayerModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-body">
+      <h2 id="editPlayerTitle">Edit Player</h2>
+      <p>Click any mirror tag to set it as active, remove broken domains with ✕, or add backup domains (.tech, .me, .live)[cite: 8].</p>
+      
+      <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Provider Name:</label>
+      <input id="editPlayerName" class="modal-input">
+
+      <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Configured Mirrors (Click to set default):</label>
+      <div id="editModalMirrorsContainer" class="player-mirrors-list" style="margin-bottom:12px;"></div>
+
+      <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Add Backup Mirror Domain:</label>
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <input id="addMirrorInput" class="modal-input" style="margin-bottom:0;" placeholder="e.g. cinemaos.live">
+        <button id="btnAddMirrorDomain" class="modal-btn btn-secondary" type="button">+ Add</button>
+      </div>
+
+      <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Movie URL Template ({domain}, {id}, {title}):</label>
+      <input id="editPlayerMovieTpl" class="modal-input">
+
+      <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">TV URL Template ({domain}, {id}):</label>
+      <input id="editPlayerTvTpl" class="modal-input">
+    </div>
+
+    <div class="modal-actions-sticky">
+      <button id="btnSavePlayerEdit" class="modal-btn btn-primary" type="button">Save Changes</button>
+      <button id="btnCancelPlayerEdit" class="modal-btn btn-secondary" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Shelf Catalog Customizer Preferences Modal -->
+<div id="preferencesModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-body">
+      <h2>Catalog Shelf Preferences</h2>
+      <p>Personalize your home screen. Toggle or customize which categories load by default, including history shelves.</p>
+      <div id="shelfPreferencesList"></div>
+    </div>
+    <div class="modal-actions-sticky">
+      <button id="btnSaveShelfPreferences" class="modal-btn btn-primary" type="button">Apply & Reload</button>
+      <button id="btnResetShelfPreferences" class="modal-btn btn-danger" type="button">Reset Defaults</button>
+      <button id="btnClosePreferences" class="modal-btn btn-secondary" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Remote Type Selection & Calibration Wizard Modal -->
+<div id="remoteModal" class="modal-overlay">
+  <div class="modal-box" style="text-align:center;">
+    <div class="modal-body">
+      <h2>Remote Setup Wizard</h2>
+      
+      <div id="wizardStepTypeSelector">
+        <p>Select your remote control type before calibration:</p>
+        <div class="remote-type-selector">
+          <div id="cardTypeDpad" class="remote-type-card selected" tabindex="0">
+            <h3>📺 5-Button TV D-Pad</h3>
+            <p>Android TV, FireTV, Google TV remotes without number keys.</p>
+            <div class="active-pill">● Selected</div>
+          </div>
+          <div id="cardTypeNumpad" class="remote-type-card" tabindex="0">
+            <h3>🔢 Remote with Numpad</h3>
+            <p>Full TV / keyboard controller with 0-9 digits.</p>
+            <div class="active-pill">● Selected</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="wizardStepKeyCalibration" style="display:none;">
+        <p id="wizardCalibIntro">Press each button twice to confirm.</p>
+        <div>
+          <div id="cfgActionTag" style="display:inline-block;padding:8px 18px;border:1.5px solid #fff;border-radius:10px;font-weight:800;margin-bottom:14px;">ACTION</div>
+          <div id="cfgSubText" style="min-height:44px;color:#fff;font-size:15px;">Press the button on your remote...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions-sticky" id="wizardActionsSelector" style="justify-content:center;">
+      <button id="btnStartCalibrateWizard" class="modal-btn btn-primary" type="button">Next: Calibrate Buttons</button>
+      <button id="btnCancelRemoteType" class="modal-btn btn-secondary" type="button">Cancel</button>
+    </div>
+
+    <div class="modal-actions-sticky" id="wizardActionsCalibrating" style="justify-content:center;display:none;">
+      <button id="btnResetDefaultKeys" class="modal-btn btn-danger" type="button">Reset Defaults</button>
+      <button id="btnCancelConfig" class="modal-btn btn-secondary" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const IMG = "https://image.tmdb.org/t/p/w342";
+const BACKDROP_IMG = "https://image.tmdb.org/t/p/w1280";
+
+const DEFAULT_SHELF_DEFINITIONS = [
+  { id: "recent_watched", title: "Recently Watched", isSpecial: "recent", enabled: true },
+  { id: "because_watched", title: "Because You Watched (Recommendations)", isSpecial: "because", enabled: true },
+  { id: "trend_movie", title: "Trending Movies This Week", endpoint: "/trending/movie/week", type: "movie", enabled: true },
+  { id: "trend_tv", title: "Trending TV Series This Week", endpoint: "/trending/tv/week", type: "tv", enabled: true },
+  { id: "south_hits", title: "Regional Cinema", endpoint: "/discover/movie", extra: "&sort_by=popularity.desc&with_original_language=te|ta|kn|ml", type: "movie", enabled: true },
+  { id: "pop_tv", title: "Popular TV Shows & Web Series", endpoint: "/discover/tv", extra: "&sort_by=popularity.desc&vote_count.gte=100", type: "tv", enabled: true },
+  { id: "hindi_cinema", title: "Popular Hindi Cinema", endpoint: "/discover/movie", extra: "&sort_by=popularity.desc&with_original_language=hi", type: "movie", enabled: true },
+  { id: "world_blockbuster", title: "Worldwide Blockbuster Cinema", endpoint: "/discover/movie", extra: "&sort_by=popularity.desc&vote_count.gte=300", type: "movie", enabled: true },
+  { id: "action_cinema", title: "High-Octane Action Cinema", endpoint: "/discover/movie", extra: "&sort_by=popularity.desc&with_genres=28", type: "movie", enabled: false },
+  { id: "anime_world", title: "Anime & Japanese Animation", endpoint: "/discover/tv", extra: "&sort_by=popularity.desc&with_genres=16&with_original_language=ja", type: "tv", enabled: false },
+  { id: "scifi_fantasy", title: "Sci-Fi & Future Worlds", endpoint: "/discover/movie", extra: "&sort_by=popularity.desc&with_genres=878", type: "movie", enabled: false }
+];
+
+let activeShelfDefinitions = [];
+function loadShelfPreferences() {
+  try {
+    const saved = localStorage.getItem("cinehome_shelf_preferences");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      activeShelfDefinitions = DEFAULT_SHELF_DEFINITIONS.map(def => {
+        const match = parsed.find(p => p.id === def.id);
+        return match ? { ...def, enabled: match.enabled } : def;
+      });
+      return;
+    }
+  } catch(e) {}
+  activeShelfDefinitions = JSON.parse(JSON.stringify(DEFAULT_SHELF_DEFINITIONS));
+}
+loadShelfPreferences();
+
+let playerSources = [
+  {
+    name: "CinemaOS",
+    domains: ["cinemaos.tech", "cinemaos.me", "cinemaos.live"],
+    activeDomainIdx: 0,
+    movieTpl: "https://{domain}/player/{id}?theme=ffffff",
+    tvTpl: "https://{domain}/player/{id}?theme=ffffff&type=tv&s=1&e=1"
+  },
+  {
+    name: "Vidrift",
+    domains: ["embed.vidrift.net"],
+    activeDomainIdx: 0,
+    movieTpl: "https://{domain}/embed/movie/{id}?title={title}",
+    tvTpl: "https://{domain}/embed/tv/{id}/1/1"
+  },
+  {
+    name: "VidFast",
+    domains: ["vidfast.vc"],
+    activeDomainIdx: 0,
+    movieTpl: "https://{domain}/movie/{id}?autoPlay=true",
+    tvTpl: "https://{domain}/tv/{id}/1/1?autoPlay=true"
+  }
+];
+let activeSourceIdx = 0;
+let editingPlayerIdx = -1;
+
+const DEFAULT_KEY_MAP = {
+  UP: ["2", "ArrowUp", "Up", "Numpad8"],
+  DOWN: ["8", "ArrowDown", "Down", "Numpad2"],
+  LEFT: ["4", "ArrowLeft", "Left", "Numpad4"],
+  RIGHT: ["6", "ArrowRight", "Right", "Numpad6"],
+  SELECT: ["5", "Enter", "Select", "NumpadEnter"],
+  BACK: ["0", "Escape", "Backspace", "BrowserBack", "GoBack", "Numpad0"],
+  SEARCH: ["1", "Numpad1"],
+  MIRROR: ["3", "F3", "Numpad3"],
+  EXTERNAL: ["7", "Numpad7"]
+};
+
+let activeKeyMap = { ...DEFAULT_KEY_MAP };
+let remoteDeviceType = localStorage.getItem("cinehome_remote_type") || null;
+
+function loadSavedKeyProfile() {
+  try {
+    const saved = localStorage.getItem("cinehome_remote_config");
+    if (saved) activeKeyMap = JSON.parse(saved);
+  } catch(e) {}
+}
+loadSavedKeyProfile();
+
+function normalizePlayer(p) {
+  if (!p) return null;
+  let domains = Array.isArray(p.domains) ? p.domains.filter(Boolean) : [];
+  if (!domains.length && p.domain) domains = [p.domain];
+  if (!domains.length) {
+    if (p.name === "CinemaOS") domains = ["cinemaos.tech", "cinemaos.me", "cinemaos.live"];
+    else if (p.name === "Vidrift") domains = ["embed.vidrift.net"];
+    else if (p.name === "VidFast") domains = ["vidfast.vc"];
+    else domains = [p.name || "cinemaos.tech"];
+  }
+
+  let movieTpl = p.movieTpl || "https://{domain}/player/{id}?theme=ffffff";
+  let tvTpl = p.tvTpl || "https://{domain}/player/{id}?theme=ffffff&type=tv&s=1&e=1";
+
+  domains.forEach(d => {
+    movieTpl = movieTpl.replace(d, "{domain}");
+    tvTpl = tvTpl.replace(d, "{domain}");
+  });
+
+  return {
+    name: p.name || domains[0],
+    domains: [...new Set(domains)],
+    activeDomainIdx: typeof p.activeDomainIdx === "number" && p.activeDomainIdx < domains.length ? p.activeDomainIdx : 0,
+    movieTpl,
+    tvTpl
+  };
+}
+
+async function syncCustomPlayers() {
+  try {
+    const r = await fetch("/api/players");
+    const d = await r.json();
+    if (Array.isArray(d.players) && d.players.length) {
+      playerSources = d.players.map(normalizePlayer);
+    }
+  } catch(e) {}
+  playerSources = playerSources.map(normalizePlayer);
+  renderPlayerList();
+}
+
+function savePlayersToServer() {
+  fetch("/api/players", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ players: playerSources })
+  }).catch(() => {});
+}
+
+function parseUrlToTemplate(rawUrl) {
+  try {
+    const u = new URL(rawUrl.trim());
+    const match = u.pathname.match(/\d+/);
+    if (!match) throw new Error("No media ID found in URL");
+    const detectedId = match[0];
+    const domain = u.hostname.replace("www.", "");
+    const isTV = u.pathname.includes("tv") || u.pathname.includes("show") || u.pathname.includes("series");
+    
+    let tpl = rawUrl.replace(u.hostname, "{domain}").replace(detectedId, "{id}");
+    
+    return {
+      domain,
+      detectedId,
+      isTV,
+      movieTpl: isTV ? tpl.replace("tv", "movie") : tpl,
+      tvTpl: isTV ? tpl : tpl.replace("movie", "tv") + (tpl.includes("/1/1") || tpl.includes("s=") ? "" : "?theme=ffffff&type=tv&s=1&e=1")
+    };
+  } catch(e) {
+    return null;
+  }
+}
+
+function renderPlayerList() {
+  const container = document.getElementById("playerListContainer");
+  container.innerHTML = "";
+  playerSources.forEach((p, idx) => {
+    const card = document.createElement("div");
+    card.className = "player-item-card";
+    
+    const mirrorTags = (p.domains || []).map((dom, dIdx) => `
+      <div class="mirror-tag ${dIdx === p.activeDomainIdx ? 'active-mirror' : ''}">
+        <span class="mirror-tag-text">${dom}</span>
+        ${dIdx === p.activeDomainIdx ? "<b>(active)</b>" : ""}
+      </div>
+    `).join("");
+
+    card.innerHTML = `
+      <div class="player-item-header">
+        <span class="player-item-title" title="${idx + 1}. ${p.name}">${idx + 1}. ${p.name}</span>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="modal-btn btn-secondary player-edit-btn" style="padding:4px 10px;font-size:12px;" onclick="openEditPlayer(${idx})">✏ Edit</button>
+          <button class="modal-btn btn-danger player-del-btn" style="padding:4px 10px;font-size:12px;" onclick="deletePlayer(${idx})">Delete</button>
+        </div>
+      </div>
+      <div class="player-mirrors-list">${mirrorTags}</div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function renderEditModalMirrors() {
+  if (editingPlayerIdx < 0) return;
+  const p = playerSources[editingPlayerIdx];
+  const container = document.getElementById("editModalMirrorsContainer");
+  container.innerHTML = "";
+  
+  p.domains.forEach((dom, dIdx) => {
+    const isAct = dIdx === (p.activeDomainIdx || 0);
+    const tag = document.createElement("div");
+    tag.className = "mirror-tag" + (isAct ? " active-mirror" : "");
+    tag.innerHTML = `
+      <span class="mirror-tag-text" style="cursor:pointer;">${dom} ${isAct ? "<b>(active)</b>" : ""}</span>
+      ${p.domains.length > 1 ? `<span style="cursor:pointer;color:#f87171;font-weight:bold;margin-left:4px;" onclick="removeEditMirror(${dIdx})" title="Remove domain">✕</span>` : ""}
+    `;
+    tag.querySelector(".mirror-tag-text").onclick = () => {
+      p.activeDomainIdx = dIdx;
+      renderEditModalMirrors();
+      renderPlayerList();
+      savePlayersToServer();
+    };
+    container.appendChild(tag);
+  });
+}
+
+window.removeEditMirror = function(dIdx) {
+  if (editingPlayerIdx < 0) return;
+  const p = playerSources[editingPlayerIdx];
+  p.domains.splice(dIdx, 1);
+  if (p.activeDomainIdx >= p.domains.length) p.activeDomainIdx = 0;
+  renderEditModalMirrors();
+  renderPlayerList();
+  savePlayersToServer();
+};
+
+window.openEditPlayer = function(idx) {
+  editingPlayerIdx = idx;
+  const p = playerSources[idx];
+  document.getElementById("editPlayerTitle").textContent = `Edit ${p.name}`;
+  document.getElementById("editPlayerName").value = p.name;
+  document.getElementById("editPlayerMovieTpl").value = p.movieTpl;
+  document.getElementById("editPlayerTvTpl").value = p.tvTpl;
+  document.getElementById("addMirrorInput").value = "";
+  renderEditModalMirrors();
+  document.getElementById("editPlayerModal").style.display = "flex";
+  initModalDpad("editPlayerModal");
+};
+
+document.getElementById("btnSavePlayerEdit").onclick = () => {
+  if (editingPlayerIdx < 0) return;
+  const p = playerSources[editingPlayerIdx];
+  p.name = document.getElementById("editPlayerName").value.trim() || p.name;
+  
+  let movieTpl = document.getElementById("editPlayerMovieTpl").value.trim() || p.movieTpl;
+  let tvTpl = document.getElementById("editPlayerTvTpl").value.trim() || p.tvTpl;
+  
+  p.domains.forEach(d => {
+    movieTpl = movieTpl.replace(d, "{domain}");
+    tvTpl = tvTpl.replace(d, "{domain}");
+  });
+  
+  p.movieTpl = movieTpl;
+  p.tvTpl = tvTpl;
+  
+  savePlayersToServer();
+  renderPlayerList();
+  document.getElementById("editPlayerModal").style.display = "none";
+  activeModalId = null;
+};
+
+document.getElementById("btnCancelPlayerEdit").onclick = () => {
+  document.getElementById("editPlayerModal").style.display = "none";
+  activeModalId = null;
+};
+
+function addMirrorDomainAction() {
+  if (editingPlayerIdx < 0) return;
+  const input = document.getElementById("addMirrorInput");
+  let newDomain = input.value.trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '').trim();
+  if (!newDomain) return;
+  const p = playerSources[editingPlayerIdx];
+  if (!Array.isArray(p.domains)) p.domains = [];
+  
+  if (!p.domains.includes(newDomain)) {
+    p.domains.push(newDomain);
+    renderEditModalMirrors();
+    renderPlayerList();
+    savePlayersToServer();
+    input.value = "";
+  }
+}
+
+document.getElementById("btnAddMirrorDomain").onclick = addMirrorDomainAction;
+document.getElementById("addMirrorInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    addMirrorDomainAction();
+  }
+});
+
+window.deletePlayer = function(idx) {
+  if (playerSources.length <= 1) {
+    alert("You must keep at least one streaming source.");
+    return;
+  }
+  playerSources.splice(idx, 1);
+  if (activeSourceIdx >= playerSources.length) activeSourceIdx = 0;
+  renderPlayerList();
+  savePlayersToServer();
+};
+
+document.getElementById("btnAddPlayerSubmit").onclick = () => {
+  const movieVal = document.getElementById("inputAddMovieUrl").value.trim();
+  const tvVal = document.getElementById("inputAddTvUrl").value.trim();
+  if (!movieVal) {
+    alert("Please provide at least a sample movie watch URL.");
+    return;
+  }
+  
+  const movieParsed = parseUrlToTemplate(movieVal);
+  if (!movieParsed) {
+    alert("Invalid movie URL. Provide a URL containing a media ID (e.g. /movie/1400940)");
+    return;
+  }
+
+  let finalTvTpl = movieParsed.tvTpl;
+  if (tvVal) {
+    const tvParsed = parseUrlToTemplate(tvVal);
+    if (tvParsed) finalTvTpl = tvParsed.tvTpl;
+  }
+
+  const newSource = {
+    name: movieParsed.domain,
+    domains: [movieParsed.domain],
+    activeDomainIdx: 0,
+    movieTpl: movieParsed.movieTpl,
+    tvTpl: finalTvTpl
+  };
+
+  playerSources.push(normalizePlayer(newSource));
+  savePlayersToServer();
+  renderPlayerList();
+  document.getElementById("inputAddMovieUrl").value = "";
+  document.getElementById("inputAddTvUrl").value = "";
+  initModalDpad("playerModal");
+};
+
+document.getElementById("btnManagePlayers").onclick = () => {
+  document.getElementById("playerModal").style.display = "flex";
+  initModalDpad("playerModal");
+};
+document.getElementById("btnClosePlayerModal").onclick = () => {
+  document.getElementById("playerModal").style.display = "none";
+  activeModalId = null;
+};
+
+/* Shelf Preferences Rendering & D-Pad Setup */
+function renderShelfPreferences() {
+  const list = document.getElementById("shelfPreferencesList");
+  list.innerHTML = "";
+  activeShelfDefinitions.forEach((def, idx) => {
+    const row = document.createElement("div");
+    row.className = "shelf-toggle-item" + (idx === 0 ? " focused" : "");
+    row.setAttribute("data-pref-idx", idx);
+    row.innerHTML = `
+      <span style="font-size:13.5px;color:#fff;font-weight:600;">${def.title}</span>
+      <input type="checkbox" class="switch-input" data-id="${def.id}" ${def.enabled ? "checked" : ""}>
+    `;
+    row.onclick = () => {
+      const cb = row.querySelector(".switch-input");
+      cb.checked = !cb.checked;
+    };
+    list.appendChild(row);
+  });
+}
+
+document.getElementById("btnManagePreferences").onclick = () => {
+  renderShelfPreferences();
+  document.getElementById("preferencesModal").style.display = "flex";
+  initModalDpad("preferencesModal");
+};
+
+document.getElementById("btnSaveShelfPreferences").onclick = () => {
+  const checkboxes = document.querySelectorAll("#shelfPreferencesList .switch-input");
+  checkboxes.forEach(cb => {
+    const id = cb.getAttribute("data-id");
+    const item = activeShelfDefinitions.find(x => x.id === id);
+    if (item) item.enabled = cb.checked;
+  });
+  localStorage.setItem("cinehome_shelf_preferences", JSON.stringify(activeShelfDefinitions));
+  document.getElementById("preferencesModal").style.display = "none";
+  activeModalId = null;
+  loadHome();
+};
+
+document.getElementById("btnResetShelfPreferences").onclick = () => {
+  localStorage.removeItem("cinehome_shelf_preferences");
+  loadShelfPreferences();
+  renderShelfPreferences();
+};
+
+document.getElementById("btnClosePreferences").onclick = () => {
+  document.getElementById("preferencesModal").style.display = "none";
+  activeModalId = null;
+};
+
+function formatKeyLabel(keyString) {
+  if (!keyString) return "";
+  if (keyString === "ArrowUp" || keyString === "Up") return "↑";
+  if (keyString === "ArrowDown" || keyString === "Down") return "↓";
+  if (keyString === "ArrowLeft" || keyString === "Left") return "←";
+  if (keyString === "ArrowRight" || keyString === "Right") return "→";
+  if (keyString === "Enter" || keyString === "Select") return "Select";
+  if (keyString === "Backspace" || keyString === "Escape") return "Back";
+  if (keyString.startsWith("Digit")) return keyString.replace("Digit", "");
+  if (keyString.startsWith("Key")) return keyString.replace("Key", "");
+  if (keyString.startsWith("Numpad")) return keyString.replace("Numpad", "Num");
+  return keyString.toUpperCase();
+}
+
+function getBestKeyLabel(actionName) {
+  const keys = activeKeyMap[actionName] || [];
+  if (!keys.length) return "";
+  const primary = keys[0];
+  const secondary = keys[1] && keys[1] !== primary ? keys[1] : null;
+  if (secondary && (primary === "2" || primary === "8" || primary === "4" || primary === "6")) {
+    return `${formatKeyLabel(secondary)} / ${primary}`;
+  }
+  return formatKeyLabel(primary);
+}
+
+function updateBottomBarLegend() {
+  const helpEl = document.getElementById("help");
+  if (!helpEl) return;
+  if (remoteDeviceType === "dpad") {
+    helpEl.innerHTML = `
+      <span><span class="key-tag">↑ ↓</span> Shelves</span>
+      <span><span class="key-tag">← →</span> Browse</span>
+      <span><span class="key-tag">Select</span> Play</span>
+      <span><span class="key-tag">Back</span> Home / Exit</span>
+      <span><span class="key-tag">↑ from top</span> Menu</span>
+    `;
+  } else {
+    helpEl.innerHTML = `
+      <span><span class="key-tag">${getBestKeyLabel("UP")} ${getBestKeyLabel("DOWN")}</span> Shelves</span>
+      <span><span class="key-tag">${getBestKeyLabel("LEFT")} ${getBestKeyLabel("RIGHT")}</span> Browse</span>
+      <span><span class="key-tag">${getBestKeyLabel("SELECT")}</span> Play</span>
+      <span><span class="key-tag">${getBestKeyLabel("MIRROR")}</span> Switch (3)</span>
+      <span><span class="key-tag">${getBestKeyLabel("EXTERNAL")}</span> External (7)</span>
+      <span><span class="key-tag">${getBestKeyLabel("SEARCH")}</span> Search (1)</span>
+      <span><span class="key-tag">${getBestKeyLabel("BACK")}</span> Back (0)</span>
+    `;
+  }
+}
+updateBottomBarLegend();
+
+async function saveKeyProfileToServer(newProfile) {
+  try {
+    localStorage.setItem("cinehome_remote_config", JSON.stringify(newProfile));
+  } catch(e) {}
+  updateBottomBarLegend();
+  fetch("/api/save-remote-config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ profile: newProfile })
+  }).catch(() => {});
+}
+
+let audioCtx = null;
+function getAudioContext() {
+  if (!audioCtx) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) audioCtx = new AudioContextClass();
+  }
+  if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+
+function playTickSound() {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.setValueAtTime(800, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(350, ctx.currentTime + 0.045);
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.045);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.045);
+  } catch(e) {}
+}
+
+function playSelectSound() {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(520, ctx.currentTime);
+    osc.frequency.setValueAtTime(780, ctx.currentTime + 0.07);
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.22);
+  } catch(e) {}
+}
+
+const home = document.getElementById("home");
+const statusEl = document.getElementById("status");
+const ambientA = document.getElementById("ambientA");
+const ambientB = document.getElementById("ambientB");
+let currentAmbientIsA = true;
+let lastBackdropUrl = "";
+
+function setSmoothAmbientBackdrop(imageUrl) {
+  if (!imageUrl || imageUrl === lastBackdropUrl) return;
+  lastBackdropUrl = imageUrl;
+
+  const targetLayer = currentAmbientIsA ? ambientB : ambientA;
+  const hideLayer = currentAmbientIsA ? ambientA : ambientB;
+
+  const imgPreload = new Image();
+  imgPreload.src = imageUrl;
+  imgPreload.onload = () => {
+    targetLayer.style.backgroundImage = `url("${imageUrl}")`;
+    targetLayer.classList.add("visible");
+    hideLayer.classList.remove("visible");
+    currentAmbientIsA = !currentAmbientIsA;
+  };
+}
+
+const searchPage = document.getElementById("searchPage");
+const searchInput = document.getElementById("searchInput");
+const searchButton = document.getElementById("searchButton");
+const btnExitSearch = document.getElementById("btnExitSearch");
+const resultsGrid = document.getElementById("resultsGrid");
+const resultsInfo = document.getElementById("resultsInfo");
+
+const player = document.getElementById("player");
+const playerFrame = document.getElementById("playerFrame");
+const playerHudBar = document.getElementById("playerHudBar");
+const playerExitTrigger = document.getElementById("playerExitTrigger");
+const btnSwitchPlayerHud = document.getElementById("btnSwitchPlayerHud");
+const btnLaunchExternalHud = document.getElementById("btnLaunchExternalHud");
+const playerStreamBanner = document.getElementById("playerStreamBanner");
+
+const playerCenterHelper = document.getElementById("playerCenterHelper");
+const btnHelperSwitch = document.getElementById("btnHelperSwitch");
+const btnHelperExternal = document.getElementById("btnHelperExternal");
+const btnHelperExit = document.getElementById("btnHelperExit");
+const helperCountdown = document.getElementById("helperCountdown");
+
+const remoteModal = document.getElementById("remoteModal");
+const btnConfigRemote = document.getElementById("btnConfigRemote");
+const btnResetDefaultKeys = document.getElementById("btnResetDefaultKeys");
+const btnCancelConfig = document.getElementById("btnCancelConfig");
+const cfgActionTag = document.getElementById("cfgActionTag");
+const cfgSubText = document.getElementById("cfgSubText");
+
+let shelves = [];
+let activeShelf = 0;
+let searchItems = [];
+let searchIndex = 0;
+let searchOpen = false;
+let loading = false;
+let searching = false;
+let searchDebounceTimer = null;
+let backdropDebounceTimer = null;
+let currentItem = null;
+let hudTimeout = null;
+let streamBannerTimeout = null;
+let playerActive = false;
+
+/* Setup-Box Reliable Center Check State */
+let centerCheckGraceTimer = null;
+let centerCloseTimeout = null;
+
+/* D-Pad Focus State in Player Modes: "none", "hud", "helper" */
+let playerDpadMode = "none";
+let playerHudCol = 0;
+let playerHelpCol = 0;
+
+const playerHudButtons = [playerExitTrigger, btnSwitchPlayerHud, btnLaunchExternalHud];
+const playerHelperButtons = [btnHelperSwitch, btnHelperExternal, btnHelperExit];
+
+/* Navigation state inside Search View */
+let searchNavPosition = "input";
+
+/* Pure 5-Button D-Pad Focus States on Home */
+let inHeaderNav = false;
+let headerNavCol = 0;
+const headerNavButtons = [
+  document.getElementById("btnSearchNav"),
+  document.getElementById("btnManagePreferences"),
+  document.getElementById("btnManagePlayers"),
+  document.getElementById("btnConfigRemote")
+];
+
+/* Active Modal Tracking & Focus List */
+let activeModalId = null;
+let modalFocusIndex = 0;
+
+function getModalFocusableElements(modalId) {
+  const modal = document.getElementById(modalId);
+  if (!modal) return [];
+  if (modalId === "remoteModal") {
+    if (wizardStepTypeSelector.style.display !== "none") {
+      return [cardTypeDpad, cardTypeNumpad, document.getElementById("btnStartCalibrateWizard"), document.getElementById("btnCancelRemoteType")];
+    } else {
+      return [btnResetDefaultKeys, btnCancelConfig];
+    }
+  }
+  if (modalId === "preferencesModal") {
+    const items = [...modal.querySelectorAll(".shelf-toggle-item")];
+    const actions = [document.getElementById("btnSaveShelfPreferences"), document.getElementById("btnResetShelfPreferences"), document.getElementById("btnClosePreferences")];
+    return [...items, ...actions];
+  }
+  if (modalId === "playerModal") {
+    const editBtns = [...modal.querySelectorAll(".player-edit-btn, .player-del-btn")];
+    const inputs = [document.getElementById("inputAddMovieUrl"), document.getElementById("inputAddTvUrl")];
+    const actions = [document.getElementById("btnAddPlayerSubmit"), document.getElementById("btnClosePlayerModal")];
+    return [...editBtns, ...inputs, ...actions];
+  }
+  if (modalId === "editPlayerModal") {
+    return [
+      document.getElementById("editPlayerName"),
+      document.getElementById("addMirrorInput"),
+      document.getElementById("btnAddMirrorDomain"),
+      document.getElementById("editPlayerMovieTpl"),
+      document.getElementById("editPlayerTvTpl"),
+      document.getElementById("btnSavePlayerEdit"),
+      document.getElementById("btnCancelPlayerEdit")
+    ];
+  }
+  return [];
+}
+
+function initModalDpad(modalId) {
+  activeModalId = modalId;
+  modalFocusIndex = 0;
+  updateModalDpadUI();
+}
+
+function updateModalDpadUI() {
+  if (!activeModalId) return;
+  const elements = getModalFocusableElements(activeModalId);
+  elements.forEach((el, idx) => {
+    if (!el) return;
+    el.classList.toggle("focused", idx === modalFocusIndex);
+    if (idx === modalFocusIndex) {
+      if (typeof el.scrollIntoView === "function") {
+        el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+      if (typeof el.focus === "function" && el.tagName === "INPUT") {
+        el.focus();
+      }
+    }
+  });
+}
+
+function handleModalDpad(dir, select = false) {
+  const elements = getModalFocusableElements(activeModalId);
+  if (!elements.length) return;
+
+  if (select) {
+    const cur = elements[modalFocusIndex];
+    if (cur) {
+      playSelectSound();
+      cur.click();
+    }
+    return;
+  }
+
+  if (activeModalId === "remoteModal" && wizardStepTypeSelector.style.display !== "none") {
+    if (dir === "left" && modalFocusIndex === 1) {
+      modalFocusIndex = 0;
+      cardTypeDpad.click();
+    } else if (dir === "right" && modalFocusIndex === 0) {
+      modalFocusIndex = 1;
+      cardTypeNumpad.click();
+    } else if (dir === "down" && (modalFocusIndex === 0 || modalFocusIndex === 1)) {
+      modalFocusIndex = 2;
+    } else if (dir === "up" && modalFocusIndex >= 2) {
+      modalFocusIndex = (remoteDeviceType === "dpad") ? 0 : 1;
+    } else if (dir === "right" && modalFocusIndex === 2) {
+      modalFocusIndex = 3;
+    } else if (dir === "left" && modalFocusIndex === 3) {
+      modalFocusIndex = 2;
+    }
+    playTickSound();
+    updateModalDpadUI();
+    return;
+  }
+
+  if (dir === "up" || dir === "left") {
+    modalFocusIndex = Math.max(0, modalFocusIndex - 1);
+    playTickSound();
+    updateModalDpadUI();
+  } else if (dir === "down" || dir === "right") {
+    modalFocusIndex = Math.min(elements.length - 1, modalFocusIndex + 1);
+    playTickSound();
+    updateModalDpadUI();
+  }
+}
+
+let isConfiguringRemote = false;
+let wizardStepIndex = 0;
+let wizardReadAttempts = 0;
+let wizardFirstCandidate = null;
+let newConfigDraft = {};
+
+const DPAD_5_BUTTON_STEPS = [
+  { action: "UP", label: "MOVE UP" },
+  { action: "DOWN", label: "MOVE DOWN" },
+  { action: "LEFT", label: "MOVE LEFT" },
+  { action: "RIGHT", label: "MOVE RIGHT" },
+  { action: "SELECT", label: "SELECT / PLAY" },
+  { action: "BACK", label: "BACK / EXIT" }
+];
+
+const FULL_NUMPAD_STEPS = [
+  { action: "UP", label: "MOVE UP" },
+  { action: "DOWN", label: "MOVE DOWN" },
+  { action: "LEFT", label: "MOVE LEFT" },
+  { action: "RIGHT", label: "MOVE RIGHT" },
+  { action: "SELECT", label: "SELECT / PLAY" },
+  { action: "BACK", label: "BACK / EXIT" },
+  { action: "SEARCH", label: "OPEN SEARCH" },
+  { action: "MIRROR", label: "SWITCH PLAYER MIRROR" },
+  { action: "EXTERNAL", label: "LAUNCH EXTERNAL" }
+];
+
+let activeWizardSteps = DPAD_5_BUTTON_STEPS;
+
+const cardTypeDpad = document.getElementById("cardTypeDpad");
+const cardTypeNumpad = document.getElementById("cardTypeNumpad");
+const wizardStepTypeSelector = document.getElementById("wizardStepTypeSelector");
+const wizardStepKeyCalibration = document.getElementById("wizardStepKeyCalibration");
+const wizardActionsSelector = document.getElementById("wizardActionsSelector");
+const wizardActionsCalibrating = document.getElementById("wizardActionsCalibrating");
+
+cardTypeDpad.onclick = () => {
+  cardTypeDpad.classList.add("selected");
+  cardTypeNumpad.classList.remove("selected");
+  remoteDeviceType = "dpad";
+};
+cardTypeNumpad.onclick = () => {
+  cardTypeNumpad.classList.add("selected");
+  cardTypeDpad.classList.remove("selected");
+  remoteDeviceType = "numpad";
+};
+
+document.getElementById("btnStartCalibrateWizard").onclick = () => {
+  localStorage.setItem("cinehome_remote_type", remoteDeviceType);
+  updateBottomBarLegend();
+  wizardStepTypeSelector.style.display = "none";
+  wizardActionsSelector.style.display = "none";
+  wizardStepKeyCalibration.style.display = "block";
+  wizardActionsCalibrating.style.display = "flex";
+  activeWizardSteps = (remoteDeviceType === "dpad") ? DPAD_5_BUTTON_STEPS : FULL_NUMPAD_STEPS;
+  startKeyCalibration();
+};
+
+document.getElementById("btnCancelRemoteType").onclick = () => {
+  stopRemoteConfig();
+};
+
+function isKeyAlreadyAssigned(keyId) {
+  for (const [action, keys] of Object.entries(newConfigDraft)) {
+    if (keys.includes(keyId)) return action;
+  }
+  return null;
+}
+
+function promptWizardStep() {
+  const step = activeWizardSteps[wizardStepIndex];
+  cfgActionTag.textContent = step.label;
+  if (wizardReadAttempts === 0) {
+    cfgSubText.innerHTML = `Press the button for <b>${step.label}</b> on your remote.`;
+  } else {
+    cfgSubText.innerHTML = `<span style="color:var(--gold);">Confirmation:</span> Press the <b>SAME button</b> again.`;
+  }
+}
+
+function startKeyCalibration() {
+  isConfiguringRemote = true;
+  wizardStepIndex = 0;
+  wizardReadAttempts = 0;
+  wizardFirstCandidate = null;
+  newConfigDraft = {};
+  promptWizardStep();
+}
+
+function startRemoteConfig() {
+  remoteModal.style.display = "flex";
+  wizardStepTypeSelector.style.display = "block";
+  wizardActionsSelector.style.display = "flex";
+  wizardStepKeyCalibration.style.display = "none";
+  wizardActionsCalibrating.style.display = "none";
+  if (remoteDeviceType === "dpad" || !remoteDeviceType) {
+    cardTypeDpad.classList.add("selected");
+    cardTypeNumpad.classList.remove("selected");
+  } else {
+    cardTypeNumpad.classList.add("selected");
+    cardTypeDpad.classList.remove("selected");
+  }
+  initModalDpad("remoteModal");
+}
+
+function stopRemoteConfig() {
+  isConfiguringRemote = false;
+  remoteModal.style.display = "none";
+  activeModalId = null;
+}
+
+function handleWizardKeyInput(e) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const keyId = e.code || e.key;
+  const step = activeWizardSteps[wizardStepIndex];
+
+  const existingAction = isKeyAlreadyAssigned(keyId);
+  if (existingAction && existingAction !== step.action) {
+    playTickSound();
+    cfgSubText.innerHTML = `<span style="color:#f87171;">Error: Key [${keyId}] is already used for ${existingAction}. Press a different key.</span>`;
+    return;
+  }
+
+  if (wizardReadAttempts === 0) {
+    playTickSound();
+    wizardFirstCandidate = { key: e.key, code: e.code };
+    wizardReadAttempts = 1;
+    promptWizardStep();
+    return;
+  }
+
+  if (wizardReadAttempts === 1) {
+    if (wizardFirstCandidate.code === e.code || wizardFirstCandidate.key === e.key) {
+      playSelectSound();
+      const keysForAction = [...new Set([e.key, e.code].filter(Boolean))];
+      newConfigDraft[step.action] = keysForAction;
+
+      wizardStepIndex++;
+      wizardReadAttempts = 0;
+      wizardFirstCandidate = null;
+
+      if (wizardStepIndex < activeWizardSteps.length) {
+        promptWizardStep();
+      } else {
+        activeKeyMap = { ...activeKeyMap, ...newConfigDraft };
+        saveKeyProfileToServer(activeKeyMap);
+        cfgActionTag.textContent = "SUCCESS!";
+        cfgSubText.innerHTML = `<span style="color:var(--white);">Remote profile calibrated and saved!</span>`;
+        setTimeout(() => {
+          stopRemoteConfig();
+        }, 1200);
+      }
+    } else {
+      playTickSound();
+      wizardReadAttempts = 0;
+      wizardFirstCandidate = null;
+      cfgSubText.innerHTML = `<span style="color:#f87171;">Keys didn't match! Let's retry: Press the button for <b>${step.label}</b>.</span>`;
+    }
+  }
+}
+
+btnConfigRemote.addEventListener("click", startRemoteConfig);
+btnCancelConfig.addEventListener("click", stopRemoteConfig);
+btnResetDefaultKeys.addEventListener("click", () => {
+  activeKeyMap = { ...DEFAULT_KEY_MAP };
+  saveKeyProfileToServer(activeKeyMap);
+  playSelectSound();
+  stopRemoteConfig();
+});
+
+function matchesAction(e, actionName) {
+  const list = activeKeyMap[actionName] || [];
+  return list.includes(e.key) || list.includes(e.code) || list.includes(String(e.keyCode));
+}
+
+function getRecentMedia() {
+  try {
+    const data = localStorage.getItem("cinehome_recent_media");
+    return data ? JSON.parse(data) : [];
+  } catch(e) { return []; }
+}
+
+function recordRecentMedia(m) {
+  if (!m || !m.id) return;
+  try {
+    let recents = getRecentMedia();
+    recents = recents.filter(x => x.id !== m.id);
+    recents.unshift(m);
+    if (recents.length > 20) recents = recents.slice(0, 20);
+    localStorage.setItem("cinehome_recent_media", JSON.stringify(recents));
+  } catch(e) {}
+}
+
+async function api(path, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const r = await fetch("/api/tmdb?path=" + encodeURIComponent(path), { signal: controller.signal });
+    clearTimeout(timer);
+    if (!r.ok) throw Error("TMDB failed: " + r.status);
+    return await r.json();
+  } catch(err) {
+    clearTimeout(timer);
+    throw err;
+  }
+}
+
+async function getMedia(def) {
+  let u = def.endpoint + "?include_adult=false";
+  if (def.extra) u += def.extra;
+  u += "&page=1";
+
+  const data = await api(u);
+  const results = data.results || [];
+  const out = [];
+  
+  for (const m of results) {
+    if (m && m.id && m.poster_path) {
+      m.media_type = m.media_type || def.type || (m.first_air_date ? "tv" : "movie");
+      out.push(m);
+      if (out.length >= 20) break;
+    }
+  }
+  return out;
+}
+
+function makeShelf(d, i) {
+  const s = document.createElement("section");
+  s.className = "shelf";
+  
+  const header = document.createElement("div");
+  header.className = "shelf-header";
+  
+  const h = document.createElement("h2");
+  h.textContent = d.title;
+  
+  const counter = document.createElement("span");
+  counter.className = "shelf-counter";
+  counter.id = `counter-shelf-${i}`;
+  counter.textContent = d.isStatic ? `${d.items.length} Titles` : "Loading...";
+
+  header.append(h, counter);
+
+  const row = document.createElement("div");
+  row.className = "shelf-row";
+
+  const cueLeft = document.createElement("div");
+  cueLeft.className = "nav-arrow left";
+  cueLeft.innerHTML = `<svg viewBox="0 0 24 48"><polyline points="18,6 6,24 18,42"></polyline></svg>`;
+  cueLeft.onclick = (e) => {
+    e.stopPropagation();
+    activeShelf = i;
+    moveHorizontal(-1);
+  };
+
+  const cueRight = document.createElement("div");
+  cueRight.className = "nav-arrow right";
+  cueRight.innerHTML = `<svg viewBox="0 0 24 48"><polyline points="6,6 18,24 6,42"></polyline></svg>`;
+  cueRight.onclick = (e) => {
+    e.stopPropagation();
+    activeShelf = i;
+    moveHorizontal(1);
+  };
+
+  const viewport = document.createElement("div");
+  viewport.className = "rail-viewport";
+
+  const r = document.createElement("div");
+  r.className = "rail";
+  
+  viewport.appendChild(r);
+  row.append(cueLeft, viewport, cueRight);
+  s.append(header, row);
+  home.appendChild(s);
+  return { 
+    title: d.title, 
+    section: s, 
+    rail: r, 
+    cueLeft: cueLeft, 
+    cueRight: cueRight, 
+    items: d.items || [], 
+    index: i, 
+    selectedIndex: 0, 
+    firstVisibleIndex: 0,
+    isStatic: !!d.isStatic 
+  };
+}
+
+function image(src, cls, alt, isEager = false) {
+  const im = document.createElement("img");
+  im.className = cls;
+  im.alt = alt || "Media poster";
+  im.loading = isEager ? "eager" : "lazy";
+  im.decoding = "async";
+  im.src = IMG + src;
+  im.onerror = () => {
+    im.onerror = null;
+    im.src = "https://placehold.co/300x450/111116/ffffff?text=CineHome";
+  };
+  return im;
+}
+
+function makeCard(m, shelfIdx, itemIdx) {
+  const c = document.createElement("div");
+  c.className = "card";
+  
+  const isTV = m.media_type === "tv" || !!m.first_air_date;
+  const title = m.title || m.name || "Untitled";
+  const date = (m.release_date || m.first_air_date || "").slice(0, 4) || "—";
+
+  const posterBox = document.createElement("div");
+  posterBox.className = "poster-box";
+  const p = image(m.poster_path, "poster", title, itemIdx < 3);
+  
+  const badge = document.createElement("span");
+  badge.className = "card-badge";
+  badge.textContent = String(itemIdx + 1).padStart(2, "0");
+  posterBox.append(p, badge);
+
+  const d = document.createElement("div");
+  d.className = "details";
+  
+  const t = document.createElement("h3");
+  t.textContent = title;
+
+  const metaRow = document.createElement("div");
+  metaRow.className = "meta-row";
+
+  const typeChip = document.createElement("span");
+  typeChip.className = "type-chip";
+  typeChip.textContent = isTV ? "SERIES" : "MOVIE";
+  
+  const langChip = document.createElement("span");
+  langChip.className = "meta-chip";
+  langChip.textContent = (m.original_language || "EN").toUpperCase();
+
+  const yearChip = document.createElement("span");
+  yearChip.textContent = date;
+  
+  metaRow.append(typeChip, langChip, yearChip);
+
+  if (m.vote_average) {
+    const starChip = document.createElement("span");
+    starChip.className = "rating-chip";
+    starChip.innerHTML = "★ " + Number(m.vote_average).toFixed(1);
+    metaRow.appendChild(starChip);
+  }
+
+  const desc = document.createElement("p");
+  desc.textContent = m.overview || "No overview available for this title.";
+
+  d.append(t, metaRow, desc);
+  c.append(posterBox, d);
+
+  c.onclick = () => {
+    playSelectSound();
+    activeShelf = shelfIdx;
+    shelves[shelfIdx].selectedIndex = itemIdx;
+    updateSelection();
+    playMedia(m);
+  };
+  return c;
+}
+
+function renderShelf(s) {
+  s.rail.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  s.items.forEach((m, i) => frag.appendChild(makeCard(m, s.index, i)));
+  s.rail.appendChild(frag);
+  const counter = document.getElementById(`counter-shelf-${s.index}`);
+  if (counter) counter.textContent = `${s.items.length} Titles`;
+}
+
+async function loadHome() {
+  loading = true;
+  statusEl.textContent = "Loading catalog...";
+  home.innerHTML = "";
+  
+  const recentItems = getRecentMedia();
+  const queueDefinitions = [];
+
+  const recentPref = activeShelfDefinitions.find(d => d.id === "recent_watched");
+  const becausePref = activeShelfDefinitions.find(d => d.id === "because_watched");
+
+  if (recentPref && recentPref.enabled && recentItems && recentItems.length > 0) {
+    queueDefinitions.push({
+      title: "Recently Watched",
+      isStatic: true,
+      items: recentItems
+    });
+
+    if (becausePref && becausePref.enabled) {
+      const anchor = recentItems[0];
+      const isTV = anchor.media_type === "tv" || !!anchor.first_air_date;
+      const anchorTitle = anchor.title || anchor.name || "Title";
+      queueDefinitions.push({
+        title: `Because You Watched: ${anchorTitle}`,
+        endpoint: `/${isTV ? "tv" : "movie"}/${anchor.id}/recommendations`,
+        type: isTV ? "tv" : "movie"
+      });
+    }
+  }
+
+  const enabledDefs = activeShelfDefinitions.filter(d => d.enabled && !d.isSpecial);
+  queueDefinitions.push(...enabledDefs);
+
+  shelves = queueDefinitions.map((d, i) => makeShelf(d, i));
+
+  for (let i = 0; i < shelves.length; i++) {
+    const s = shelves[i];
+    if (s.isStatic) {
+      renderShelf(s);
+    } else {
+      let loaded = false;
+      for (let retries = 0; retries < 2 && !loaded; retries++) {
+        try {
+          s.items = await getMedia(queueDefinitions[s.index]);
+          renderShelf(s);
+          loaded = true;
+          if (i === 0 && s.items[0]) {
+            const path = s.items[0].backdrop_path || s.items[0].poster_path;
+            if (path) setSmoothAmbientBackdrop(BACKDROP_IMG + path);
+          }
+        } catch (e) {
+          await new Promise(r => setTimeout(r, 300));
+        }
+      }
+      if (!loaded) {
+        s.rail.innerHTML = "<div style='color:var(--text-muted);font-size:13px;padding:12px;'>Network busy. Hover here to retry.</div>";
+        s.section.onmouseenter = async () => {
+          try {
+            s.items = await getMedia(queueDefinitions[s.index]);
+            renderShelf(s);
+          } catch(e) {}
+        };
+      }
+      await new Promise(r => setTimeout(r, 100));
+    }
+  }
+
+  loading = false;
+  activeShelf = 0;
+  inHeaderNav = false;
+  updateSelection();
+  statusEl.textContent = "Select any movie or series to stream";
+}
+
+function updateShelfArrows(s) {
+  if (!s || !s.items.length) return;
+  const maxFirst = Math.max(0, s.items.length - 3);
+  const first = s.firstVisibleIndex || 0;
+  if (s.cueLeft) s.cueLeft.classList.toggle("active", first > 0);
+  if (s.cueRight) s.cueRight.classList.toggle("active", first < maxFirst);
+}
+
+function updateSelection() {
+  if (searchOpen || !shelves.length) return;
+  
+  headerNavButtons.forEach((btn, idx) => {
+    btn.classList.toggle("focused", inHeaderNav && idx === headerNavCol);
+  });
+
+  document.querySelectorAll(".card.selected").forEach(c => c.classList.remove("selected"));
+  if (inHeaderNav) return;
+
+  shelves.forEach((s, idx) => {
+    const isCurrentShelf = (idx === activeShelf);
+    s.section.classList.toggle("inactive", !isCurrentShelf);
+    
+    if (s.items.length > 0) {
+      s.selectedIndex = Math.max(0, Math.min(s.selectedIndex, s.items.length - 1));
+      if (s.firstVisibleIndex === undefined) s.firstVisibleIndex = 0;
+
+      const maxFirst = Math.max(0, s.items.length - 3);
+      if (s.selectedIndex > s.firstVisibleIndex + 2) {
+        s.firstVisibleIndex = Math.min(maxFirst, s.selectedIndex - 2);
+      } else if (s.selectedIndex < s.firstVisibleIndex) {
+        s.firstVisibleIndex = Math.max(0, s.selectedIndex);
+      }
+      
+      const card = s.rail.children[s.selectedIndex];
+      if (card && isCurrentShelf) card.classList.add("selected");
+
+      const targetCard = s.rail.children[s.firstVisibleIndex];
+      const baseCard = s.rail.children[0];
+      if (targetCard && baseCard) {
+        const targetLeft = targetCard.offsetLeft - baseCard.offsetLeft;
+        if (Math.abs(s.rail.scrollLeft - targetLeft) > 1) {
+          s.rail.scrollTo({ left: targetLeft, behavior: isCurrentShelf ? "smooth" : "auto" });
+        }
+      }
+
+      if (isCurrentShelf) {
+        if (backdropDebounceTimer) clearTimeout(backdropDebounceTimer);
+        backdropDebounceTimer = setTimeout(() => {
+          const activeItem = s.items[s.selectedIndex];
+          if (activeItem) {
+            const bgPath = activeItem.backdrop_path || activeItem.poster_path;
+            if (bgPath) setSmoothAmbientBackdrop(BACKDROP_IMG + bgPath);
+          }
+        }, 120);
+      }
+    }
+    updateShelfArrows(s);
+  });
+
+  const activeS = shelves[activeShelf];
+  if (activeS) {
+    activeS.section.scrollIntoView({ behavior: "smooth", block: "center" });
+    const cur = activeS.items[activeS.selectedIndex];
+    const isTV = cur && (cur.media_type === "tv" || !!cur.first_air_date);
+    statusEl.textContent = `${activeS.title} · ${isTV ? "Series" : "Movie"} ${activeS.selectedIndex + 1} of ${activeS.items.length}`;
+  }
+}
+
+function moveHorizontal(dir) {
+  if (inHeaderNav) {
+    headerNavCol = Math.max(0, Math.min(headerNavButtons.length - 1, headerNavCol + dir));
+    playTickSound();
+    updateSelection();
+    return;
+  }
+  if (loading) return;
+  const s = shelves[activeShelf];
+  if (!s || !s.items.length) return;
+  const next = Math.max(0, Math.min(s.selectedIndex + dir, s.items.length - 1));
+  if (next !== s.selectedIndex) {
+    playTickSound();
+    s.selectedIndex = next;
+    updateSelection();
+  }
+}
+
+function moveVertical(dir) {
+  if (inHeaderNav) {
+    if (dir > 0) {
+      inHeaderNav = false;
+      playTickSound();
+      updateSelection();
+    }
+    return;
+  }
+
+  if (activeShelf === 0 && dir < 0) {
+    inHeaderNav = true;
+    headerNavCol = 0;
+    playTickSound();
+    updateSelection();
+    return;
+  }
+
+  if (loading) return;
+  const targetShelfIdx = Math.max(0, Math.min(activeShelf + dir, shelves.length - 1));
+  if (targetShelfIdx === activeShelf) return;
+
+  const currentShelf = shelves[activeShelf];
+  const targetShelf = shelves[targetShelfIdx];
+
+  if (targetShelf && targetShelf.items.length) {
+    const currentCol = Math.max(0, Math.min(2, currentShelf.selectedIndex - (currentShelf.firstVisibleIndex || 0)));
+    const targetFirst = targetShelf.firstVisibleIndex || 0;
+    const targetIndex = Math.min(targetShelf.items.length - 1, targetFirst + currentCol);
+    
+    playTickSound();
+    targetShelf.selectedIndex = targetIndex;
+    activeShelf = targetShelfIdx;
+    updateSelection();
+  }
+}
+
+function triggerHudActivity() {
+  if (!playerActive) return;
+  playerHudBar.classList.add("active");
+  if (hudTimeout) clearTimeout(hudTimeout);
+  hudTimeout = setTimeout(() => {
+    if (playerDpadMode !== "hud") {
+      playerHudBar.classList.remove("active");
+    }
+  }, 3500);
+}
+document.addEventListener("mousemove", triggerHudActivity);
+
+function getResolvedPlayerUrl(playerObj, item) {
+  if (!item || !playerObj) return "";
+  const isTV = item.media_type === "tv" || !!item.first_air_date;
+  const id = encodeURIComponent(item.id);
+  const title = encodeURIComponent(item.title || item.name || "");
+  
+  const domains = Array.isArray(playerObj.domains) && playerObj.domains.length ? playerObj.domains : ["cinemaos.tech"];
+  const activeDomain = domains[playerObj.activeDomainIdx || 0] || domains[0];
+  
+  let template = isTV ? (playerObj.tvTpl || playerObj.movieTpl) : playerObj.movieTpl;
+  
+  let resolved = template;
+  if (resolved.includes("{domain}")) {
+    resolved = resolved.replaceAll("{domain}", activeDomain);
+  } else {
+    resolved = resolved.replace(/^https?:\/\/[^\/]+/, `https://${activeDomain}`);
+  }
+  return resolved.replaceAll("{id}", id).replaceAll("{title}", title);
+}
+
+function showStreamBanner(text) {
+  playerStreamBanner.innerHTML = text;
+  playerStreamBanner.style.display = "block";
+  if (streamBannerTimeout) clearTimeout(streamBannerTimeout);
+  streamBannerTimeout = setTimeout(() => {
+    playerStreamBanner.style.display = "none";
+  }, 4500);
+}
+
+function updatePlayerDpadFocus() {
+  playerHudButtons.forEach((btn, i) => {
+    btn.classList.toggle("focused", playerDpadMode === "hud" && i === playerHudCol);
+  });
+  playerHelperButtons.forEach((btn, i) => {
+    btn.classList.toggle("focused", playerDpadMode === "helper" && i === playerHelpCol);
+  });
+}
+
+/* Setup-Box Reliable Center Check: Triggers after 4.5s and cleans up automatically */
+function triggerCenterPlaybackCheck() {
+  if (centerCheckGraceTimer) clearTimeout(centerCheckGraceTimer);
+  if (centerCloseTimeout) clearTimeout(centerCloseTimeout);
+
+  dismissCenterHelper();
+
+  centerCheckGraceTimer = setTimeout(() => {
+    if (!playerActive) return;
+
+    const activePlayer = playerSources[activeSourceIdx];
+    const domains = Array.isArray(activePlayer.domains) && activePlayer.domains.length ? activePlayer.domains : [activePlayer.name];
+    const activeDomain = domains[activePlayer.activeDomainIdx || 0] || domains[0];
+
+    document.getElementById("helperPlayerTitle").textContent = `Is the video playing? (${activePlayer.name} · ${activeDomain})`;
+    playerCenterHelper.classList.remove("fadeout");
+    playerCenterHelper.style.display = "block";
+
+    playerDpadMode = "helper";
+    playerHelpCol = 0;
+    updatePlayerDpadFocus();
+
+    // Reclaim top window focus so setup boxes do not swallow D-Pad keys
+    window.focus();
+
+    centerCloseTimeout = setTimeout(() => {
+      dismissCenterHelper();
+    }, 6000);
+  }, 4500);
+}
+
+function dismissCenterHelper() {
+  if (centerCloseTimeout) clearTimeout(centerCloseTimeout);
+  if (playerCenterHelper.style.display !== "none") {
+    playerCenterHelper.classList.add("fadeout");
+    setTimeout(() => {
+      playerCenterHelper.style.display = "none";
+      playerCenterHelper.classList.remove("fadeout");
+      if (playerDpadMode === "helper") {
+        playerDpadMode = "none";
+        updatePlayerDpadFocus();
+      }
+    }, 250);
+  }
+  window.focus();
+}
+
+btnHelperSwitch.onclick = () => {
+  dismissCenterHelper();
+  toggleUniversalNext();
+};
+btnHelperExternal.onclick = () => {
+  dismissCenterHelper();
+  launchExternal();
+};
+btnHelperExit.onclick = () => {
+  dismissCenterHelper();
+  closePlayer();
+};
+
+function loadPlayerSource() {
+  if (!currentItem) return;
+  const activePlayer = playerSources[activeSourceIdx];
+  const directUrl = getResolvedPlayerUrl(activePlayer, currentItem);
+
+  playerFrame.src = directUrl;
+  triggerHudActivity();
+  triggerCenterPlaybackCheck();
+
+  const domains = Array.isArray(activePlayer.domains) && activePlayer.domains.length ? activePlayer.domains : [activePlayer.name];
+  const activeDomain = domains[activePlayer.activeDomainIdx || 0] || domains[0];
+
+  showStreamBanner(`▶ <b>${activePlayer.name}</b> (${activeDomain}) &nbsp;|&nbsp; <span style="color:#a1a1aa;">Mirror: <b>3</b> &bull; External: <b>7</b></span>`);
+  window.focus();
+}
+
+function launchExternal() {
+  if (!currentItem) return;
+  const activePlayer = playerSources[activeSourceIdx];
+  const directUrl = getResolvedPlayerUrl(activePlayer, currentItem);
+  playTickSound();
+  window.open(directUrl, "_blank");
+}
+
+function toggleUniversalNext() {
+  playTickSound();
+  const currentP = playerSources[activeSourceIdx];
+
+  if (currentP.domains && currentP.domains.length > 1) {
+    currentP.activeDomainIdx = (currentP.activeDomainIdx + 1) % currentP.domains.length;
+    if (currentP.activeDomainIdx !== 0) {
+      savePlayersToServer();
+      loadPlayerSource();
+      return;
+    }
+  }
+
+  activeSourceIdx = (activeSourceIdx + 1) % playerSources.length;
+  playerSources[activeSourceIdx].activeDomainIdx = 0;
+  savePlayersToServer();
+  loadPlayerSource();
+}
+
+function playMedia(m) {
+  if (!m || !m.id) return;
+  recordRecentMedia(m);
+  playSelectSound();
+  currentItem = m;
+  playerActive = true;
+  player.style.display = "block";
+  loadPlayerSource();
+  window.focus();
+}
+
+function closePlayer() {
+  playerActive = false;
+  if (centerCheckGraceTimer) clearTimeout(centerCheckGraceTimer);
+  if (centerCloseTimeout) clearTimeout(centerCloseTimeout);
+  playerCenterHelper.style.display = "none";
+  if (hudTimeout) clearTimeout(hudTimeout);
+  if (streamBannerTimeout) clearTimeout(streamBannerTimeout);
+  playerStreamBanner.style.display = "none";
+  playerHudBar.classList.remove("active");
+  playerDpadMode = "none";
+  updatePlayerDpadFocus();
+  playerFrame.src = "about:blank";
+  player.style.display = "none";
+  currentItem = null;
+  window.focus();
+}
+
+playerExitTrigger.addEventListener("click", closePlayer);
+btnSwitchPlayerHud.addEventListener("click", toggleUniversalNext);
+btnLaunchExternalHud.addEventListener("click", launchExternal);
+
+function goHome() {
+  playTickSound();
+  closePlayer();
+  searchOpen = false;
+  searchPage.style.display = "none";
+  searchInput.blur();
+  activeShelf = 0;
+  inHeaderNav = false;
+  updateSelection();
+  statusEl.textContent = "CineHome · Home Screen";
+}
+
+function renderSearchCardsWithAnimation(items) {
+  searchItems = items;
+  searchIndex = 0;
+  resultsGrid.innerHTML = "";
+  
+  items.forEach((m, i) => {
+    const cardEl = makeResultCard(m, i);
+    cardEl.classList.add("dropping");
+    cardEl.style.animationDelay = `${i * 30}ms`;
+    resultsGrid.appendChild(cardEl);
+  });
+  updateSearchSelection();
+}
+
+async function loadSearchRecommendations() {
+  resultsInfo.textContent = "Trending recommendations:";
+  try {
+    const cached = localStorage.getItem("cinehome_cached_recommendations");
+    if (cached) {
+      const items = JSON.parse(cached);
+      if (items.length) renderSearchCardsWithAnimation(items);
+    }
+  } catch(e) {}
+
+  try {
+    const data = await api("/trending/all/week", 5000);
+    const items = (data.results || []).filter(m => m && m.id && m.poster_path).slice(0, 18);
+    renderSearchCardsWithAnimation(items);
+    localStorage.setItem("cinehome_cached_recommendations", JSON.stringify(items));
+  } catch(e) {
+    if (!searchItems.length) resultsInfo.textContent = "Type any movie or show to search.";
+  }
+}
+
+function updateSearchNavUI() {
+  searchInput.classList.toggle("focused", searchNavPosition === "input");
+  searchButton.classList.toggle("focused", searchNavPosition === "searchBtn");
+  btnExitSearch.classList.toggle("focused", searchNavPosition === "backBtn");
+}
+
+function openSearch() {
+  playTickSound();
+  closePlayer();
+  searchOpen = true;
+  searchPage.style.display = "flex";
+  searchNavPosition = "input";
+  searchInput.value = "";
+  updateSearchNavUI();
+  loadSearchRecommendations();
+  searchInput.focus();
+}
+
+document.getElementById("btnSearchNav").onclick = openSearch;
+btnExitSearch.onclick = goHome;
+
+function makeResultCard(m, i) {
+  const c = document.createElement("div");
+  c.className = "resultCard";
+  
+  const isTV = m.media_type === "tv" || !!m.first_air_date;
+  const title = m.title || m.name || "Untitled";
+  const date = (m.release_date || m.first_air_date || "").slice(0, 4) || "—";
+
+  const posterBox = document.createElement("div");
+  posterBox.className = "poster-box";
+  const p = image(m.poster_path, "poster", title, i < 6);
+  
+  const badge = document.createElement("span");
+  badge.className = "card-badge";
+  badge.textContent = String(i + 1).padStart(2, "0");
+  posterBox.append(p, badge);
+
+  const d = document.createElement("div");
+  d.className = "details";
+  
+  const t = document.createElement("h3");
+  t.textContent = title;
+
+  const metaRow = document.createElement("div");
+  metaRow.className = "meta-row";
+
+  const typeChip = document.createElement("span");
+  typeChip.className = "type-chip";
+  typeChip.textContent = isTV ? "SERIES" : "MOVIE";
+  
+  const lang = document.createElement("span");
+  lang.className = "meta-chip";
+  lang.textContent = (m.original_language || "").toUpperCase();
+
+  const yr = document.createElement("span");
+  yr.textContent = date;
+
+  metaRow.append(typeChip, lang, yr);
+
+  if (m.vote_average) {
+    const star = document.createElement("span");
+    star.className = "rating-chip";
+    star.innerHTML = "★ " + Number(m.vote_average).toFixed(1);
+    metaRow.appendChild(star);
+  }
+
+  const o = document.createElement("p");
+  o.textContent = m.overview || "No description available.";
+
+  d.append(t, metaRow, o);
+  c.append(posterBox, d);
+  c.onclick = () => {
+    searchIndex = i;
+    searchNavPosition = "grid";
+    updateSearchNavUI();
+    updateSearchSelection();
+    playMedia(m);
+  };
+  return c;
+}
+
+async function runSearch() {
+  const q = searchInput.value.trim();
+  if (!q) {
+    loadSearchRecommendations();
+    return;
+  }
+  if (searching) return;
+  searching = true;
+  resultsInfo.textContent = `Searching for "${q}"...`;
+
+  try {
+    const d = await api("/search/multi?query=" + encodeURIComponent(q) + "&include_adult=false&page=1", 6000);
+    const items = (d.results || []).filter(m => m && m.id && m.poster_path && (m.media_type === "movie" || m.media_type === "tv"));
+    if (!items.length) {
+      resultsGrid.innerHTML = "";
+      resultsInfo.textContent = "No matches found.";
+      return;
+    }
+    renderSearchCardsWithAnimation(items);
+    resultsInfo.textContent = `${items.length} titles found for "${q}"`;
+  } catch(e) {
+    resultsInfo.textContent = "Search timed out. Please try again.";
+  } finally {
+    searching = false;
+  }
+}
+
+searchInput.addEventListener("input", () => {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => runSearch(), 350);
+});
+
+function updateSearchSelection() {
+  const cards = resultsGrid.querySelectorAll(".resultCard");
+  cards.forEach((c, i) => c.classList.toggle("selected", searchNavPosition === "grid" && i === searchIndex));
+  if (searchNavPosition === "grid") {
+    const targetCard = cards[searchIndex];
+    if (targetCard) {
+      const row = Math.floor(searchIndex / 3);
+      const cardHeight = targetCard.offsetHeight || 200;
+      resultsGrid.scrollTo({ top: row * (cardHeight + 24), behavior: "smooth" });
+    }
+  }
+}
+
+function moveSearch(dir) {
+  if (searchNavPosition !== "grid") {
+    if (dir === "down") {
+      if (searchItems.length) {
+        searchNavPosition = "grid";
+        searchIndex = 0;
+        searchInput.blur();
+        updateSearchNavUI();
+        updateSearchSelection();
+        playTickSound();
+      }
+      return;
+    }
+    if (dir === "left") {
+      if (searchNavPosition === "backBtn") searchNavPosition = "searchBtn";
+      else if (searchNavPosition === "searchBtn") { searchNavPosition = "input"; searchInput.focus(); }
+      updateSearchNavUI();
+      playTickSound();
+      return;
+    }
+    if (dir === "right") {
+      if (searchNavPosition === "input") { searchInput.blur(); searchNavPosition = "searchBtn"; }
+      else if (searchNavPosition === "searchBtn") searchNavPosition = "backBtn";
+      updateSearchNavUI();
+      playTickSound();
+      return;
+    }
+    return;
+  }
+
+  const cols = 3, cur = searchIndex;
+  
+  if (dir === "up" && cur < cols) {
+    searchNavPosition = "input";
+    searchInput.focus();
+    updateSearchNavUI();
+    updateSearchSelection();
+    playTickSound();
+    return;
+  }
+
+  if (dir === "left" && cur % cols === 0) {
+    searchNavPosition = "input";
+    searchInput.focus();
+    updateSearchNavUI();
+    updateSearchSelection();
+    playTickSound();
+    return;
+  }
+
+  let next = cur;
+  if (dir === "left" && cur % cols !== 0) next = cur - 1;
+  else if (dir === "right" && cur % cols !== cols - 1 && cur + 1 < searchItems.length) next = cur + 1;
+  else if (dir === "up" && cur >= cols) next = cur - cols;
+  else if (dir === "down" && cur + cols < searchItems.length) next = cur + cols;
+  
+  if (next !== searchIndex) {
+    playTickSound();
+    searchIndex = next;
+    updateSearchSelection();
+  }
+}
+
+searchButton.addEventListener("click", () => runSearch());
+
+/* Global Keydown Listener With Flawless Modal Trapping & Input Escape */
+document.addEventListener("keydown", e => {
+  if (isConfiguringRemote) {
+    handleWizardKeyInput(e);
+    return;
+  }
+
+  // 1. Global BACK / Key 0 (Instantly exits modals, player, or search)
+  if (matchesAction(e, "BACK")) {
+    e.preventDefault();
+    if (activeModalId) {
+      const modal = document.getElementById(activeModalId);
+      if (modal) modal.style.display = "none";
+      activeModalId = null;
+      return;
+    }
+    if (playerActive || player.style.display === "block") {
+      closePlayer();
+      return;
+    }
+    if (searchOpen) {
+      goHome();
+      return;
+    }
+    goHome();
+    return;
+  }
+
+  // 2. Traps Navigation Inside Open Modals Without Getting Stuck In Text Inputs
+  if (activeModalId) {
+    if (document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA")) {
+      if (matchesAction(e, "DOWN") || e.key === "ArrowDown" || e.key === "Enter") {
+        e.preventDefault();
+        document.activeElement.blur();
+        handleModalDpad("down");
+        return;
+      }
+      if (matchesAction(e, "UP") || e.key === "ArrowUp") {
+        e.preventDefault();
+        document.activeElement.blur();
+        handleModalDpad("up");
+        return;
+      }
+      if (e.key === "Escape") {
+        document.activeElement.blur();
+      }
+      return;
+    }
+
+    e.preventDefault();
+    if (matchesAction(e, "UP")) handleModalDpad("up");
+    else if (matchesAction(e, "DOWN")) handleModalDpad("down");
+    else if (matchesAction(e, "LEFT")) handleModalDpad("left");
+    else if (matchesAction(e, "RIGHT")) handleModalDpad("right");
+    else if (matchesAction(e, "SELECT")) handleModalDpad(null, true);
+    return;
+  }
+
+  // 3. In-Player Controls & D-Pad Navigation
+  if (playerActive || player.style.display === "block") {
+    triggerHudActivity();
+
+    if (playerCenterHelper.style.display !== "none") {
+      if (matchesAction(e, "LEFT")) {
+        e.preventDefault();
+        playerHelpCol = Math.max(0, playerHelpCol - 1);
+        playTickSound();
+        updatePlayerDpadFocus();
+        return;
+      }
+      if (matchesAction(e, "RIGHT")) {
+        e.preventDefault();
+        playerHelpCol = Math.min(playerHelperButtons.length - 1, playerHelpCol + 1);
+        playTickSound();
+        updatePlayerDpadFocus();
+        return;
+      }
+      if (matchesAction(e, "SELECT")) {
+        e.preventDefault();
+        playSelectSound();
+        playerHelperButtons[playerHelpCol].click();
+        return;
+      }
+      if (matchesAction(e, "DOWN") || matchesAction(e, "UP")) {
+        e.preventDefault();
+        dismissCenterHelper();
+        return;
+      }
+    }
+
+    if (matchesAction(e, "EXTERNAL")) {
+      e.preventDefault();
+      dismissCenterHelper();
+      launchExternal();
+      return;
+    }
+    if (matchesAction(e, "MIRROR")) { 
+      e.preventDefault(); 
+      dismissCenterHelper();
+      toggleUniversalNext(); 
+      return; 
+    }
+
+    if (matchesAction(e, "UP")) {
+      e.preventDefault();
+      playerDpadMode = "hud";
+      playerHudBar.classList.add("active");
+      updatePlayerDpadFocus();
+      playTickSound();
+      return;
+    }
+
+    if (playerDpadMode === "hud") {
+      if (matchesAction(e, "DOWN")) {
+        e.preventDefault();
+        playerDpadMode = "none";
+        playerHudBar.classList.remove("active");
+        updatePlayerDpadFocus();
+        playTickSound();
+        return;
+      }
+      if (matchesAction(e, "LEFT")) {
+        e.preventDefault();
+        playerHudCol = Math.max(0, playerHudCol - 1);
+        updatePlayerDpadFocus();
+        playTickSound();
+        return;
+      }
+      if (matchesAction(e, "RIGHT")) {
+        e.preventDefault();
+        playerHudCol = Math.min(playerHudButtons.length - 1, playerHudCol + 1);
+        updatePlayerDpadFocus();
+        playTickSound();
+        return;
+      }
+      if (matchesAction(e, "SELECT")) {
+        e.preventDefault();
+        playSelectSound();
+        playerHudButtons[playerHudCol].click();
+        return;
+      }
+    }
+    return;
+  }
+
+  // 4. Search Screen Navigation
+  if (searchOpen) {
+    if (document.activeElement === searchInput) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        runSearch();
+        searchNavPosition = "grid";
+        searchInput.blur();
+        updateSearchNavUI();
+        updateSearchSelection();
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        moveSearch("down");
+        return;
+      }
+      if (e.key === "ArrowRight" && searchInput.selectionStart === searchInput.value.length) {
+        e.preventDefault();
+        moveSearch("right");
+        return;
+      }
+      return;
+    }
+
+    if (searchNavPosition !== "grid") {
+      if (matchesAction(e, "SELECT")) {
+        e.preventDefault();
+        playSelectSound();
+        if (searchNavPosition === "input") searchInput.focus();
+        else if (searchNavPosition === "searchBtn") runSearch();
+        else if (searchNavPosition === "backBtn") goHome();
+        return;
+      }
+      if (matchesAction(e, "LEFT")) { e.preventDefault(); moveSearch("left"); return; }
+      if (matchesAction(e, "RIGHT")) { e.preventDefault(); moveSearch("right"); return; }
+      if (matchesAction(e, "DOWN")) { e.preventDefault(); moveSearch("down"); return; }
+      return;
+    }
+
+    if (matchesAction(e, "SEARCH")) { e.preventDefault(); searchInput.focus(); searchNavPosition = "input"; updateSearchNavUI(); return; }
+    if (matchesAction(e, "SELECT")) {
+      e.preventDefault();
+      if (searchItems[searchIndex]) playMedia(searchItems[searchIndex]);
+      return;
+    }
+    if (matchesAction(e, "UP")) { e.preventDefault(); moveSearch("up"); return; }
+    if (matchesAction(e, "DOWN")) { e.preventDefault(); moveSearch("down"); return; }
+    if (matchesAction(e, "LEFT")) { e.preventDefault(); moveSearch("left"); return; }
+    if (matchesAction(e, "RIGHT")) { e.preventDefault(); moveSearch("right"); return; }
+    return;
+  }
+
+  // 5. Header Bar D-Pad Focus Selection
+  if (inHeaderNav) {
+    if (matchesAction(e, "SELECT")) {
+      e.preventDefault();
+      playSelectSound();
+      headerNavButtons[headerNavCol].click();
+      return;
+    }
+    if (matchesAction(e, "LEFT")) { e.preventDefault(); moveHorizontal(-1); return; }
+    if (matchesAction(e, "RIGHT")) { e.preventDefault(); moveHorizontal(1); return; }
+    if (matchesAction(e, "DOWN")) { e.preventDefault(); moveVertical(1); return; }
+    return;
+  }
+
+  // 6. Standard Home Screen Card Navigation
+  if (matchesAction(e, "SEARCH")) { e.preventDefault(); openSearch(); }
+  else if (matchesAction(e, "UP")) { e.preventDefault(); moveVertical(-1); }
+  else if (matchesAction(e, "DOWN")) { e.preventDefault(); moveVertical(1); }
+  else if (matchesAction(e, "LEFT")) { e.preventDefault(); moveHorizontal(-1); }
+  else if (matchesAction(e, "RIGHT")) { e.preventDefault(); moveHorizontal(1); }
+  else if (matchesAction(e, "SELECT")) {
+    e.preventDefault();
+    const s = shelves[activeShelf];
+    if (s && s.items[s.selectedIndex]) playMedia(s.items[s.selectedIndex]);
+  }
+});
+
+/* First-Run Boot Check: Auto-Launches Remote Setup for New Logins */
+function checkFirstRunRemoteSetup() {
+  if (!localStorage.getItem("cinehome_remote_type")) {
+    startRemoteConfig();
+  }
+}
+
+syncCustomPlayers();
+loadHome();
+checkFirstRunRemoteSetup();
+</script>
+</body>
+</html>
