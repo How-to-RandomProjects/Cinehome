@@ -37,11 +37,10 @@ function readConfig() {
     const parsed = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
     return {
       tmdbApiKey: typeof parsed.tmdbApiKey === 'string' ? parsed.tmdbApiKey : '',
-      customPlayers: Array.isArray(parsed.customPlayers) ? parsed.customPlayers : [],
-      remoteProfile: parsed.remoteProfile && typeof parsed.remoteProfile === 'object' ? parsed.remoteProfile : null
+      customPlayers: Array.isArray(parsed.customPlayers) ? parsed.customPlayers : []
     };
   } catch (error) {
-    return { tmdbApiKey: '', customPlayers: [], remoteProfile: null };
+    return { tmdbApiKey: '', customPlayers: [] };
   }
 }
 
@@ -158,7 +157,9 @@ async function handle(req, res) {
 
   // 5. TMDB Proxy with In-Memory Cache
   if (req.method === 'GET' && pathname === '/api/tmdb') {
-    if (!config.tmdbApiKey) return send(res, 428, { error: 'TMDB key missing' });
+    if (!config.tmdbApiKey || config.tmdbApiKey === 'YOUR_TMDB_API_KEY_HERE') {
+      return send(res, 428, { error: 'TMDB API key missing in config.json' });
+    }
     const tmdbPath = url.searchParams.get('path') || '';
     if (!tmdbPath.startsWith('/') || tmdbPath.startsWith('//') || tmdbPath.includes('..') || tmdbPath.includes('://')) {
       return send(res, 400, { error: 'Invalid TMDB path' });
