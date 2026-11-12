@@ -17,7 +17,6 @@ const MAX_BODY = 64 * 1024;
 const tmdbCache = new Map();
 const CACHE_TTL_MS = 15 * 60 * 1000;
 
-// Room-isolated SSE clients and command queues: Map<roomId, Set<res>>
 const roomClients = new Map();
 const roomQueues = new Map();
 let globalSeq = 0;
@@ -115,7 +114,6 @@ async function handle(req, res) {
   const pathname = url.pathname;
   const serverCfg = readServerConfig();
 
-  // 1. Public Boot Status (Checks if server already has a TMDB key configured)
   if (req.method === 'GET' && pathname === '/api/boot-info') {
     const isVercel = Boolean(process.env.VERCEL || req.headers['x-vercel-id']);
     const ip = isVercel ? hostHeader : getLocalNetworkIP();
@@ -127,7 +125,6 @@ async function handle(req, res) {
     });
   }
 
-  // 2. Room-Isolated Real-Time SSE Stream (TV Listens Here)
   if (req.method === 'GET' && pathname === '/api/remote-events') {
     const roomId = sanitizeRoomId(url.searchParams.get('room'));
     res.writeHead(200, {
@@ -156,7 +153,6 @@ async function handle(req, res) {
     return;
   }
 
-  // 3. Room-Isolated Polling Fallback (For Serverless / Vercel)
   if (req.method === 'GET' && pathname === '/api/remote-poll') {
     const roomId = sanitizeRoomId(url.searchParams.get('room'));
     const since = Number(url.searchParams.get('since') || 0);
@@ -166,7 +162,6 @@ async function handle(req, res) {
     return send(res, 200, { seq: globalSeq, commands: pending, connectedScreens: connectedCount });
   }
 
-  // 4. Receive Command from Paired Phone Web Remote
   if (req.method === 'POST' && pathname === '/api/remote-cmd') {
     let body;
     try { body = await readBody(req); }
@@ -176,7 +171,6 @@ async function handle(req, res) {
     return send(res, 200, { ok: true, room: roomId, deliveredTo: delivered });
   }
 
-  // 5. TMDB Proxy (Supports Server Env Key OR Client Setup Key via X-TMDB-Key)
   if (req.method === 'GET' && pathname === '/api/tmdb') {
     const clientKey = (req.headers['x-tmdb-key'] || '').trim();
     const activeKey = serverCfg.tmdbApiKey || clientKey;
@@ -220,7 +214,6 @@ async function handle(req, res) {
     return send(res, 502, { error: 'TMDB request failed', detail: lastError?.message });
   }
 
-  // 6. Serve Mobile Web Remote (/remote)
   if (req.method === 'GET' && pathname === '/remote') {
     try {
       const html = fs.readFileSync(REMOTE_FILE);
@@ -235,7 +228,6 @@ async function handle(req, res) {
     }
   }
 
-  // 7. Serve Main TV Interface (/)
   if (req.method === 'GET' && (pathname === '/' || pathname === '/index.html')) {
     try {
       const html = fs.readFileSync(HTML_FILE);
