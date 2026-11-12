@@ -195,8 +195,8 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
 }
 .modal-box {
   background: #101016; border: 1.5px solid rgba(255, 255, 255, 0.25); border-radius: 20px;
-  max-width: 640px; width: 92%; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.95);
-  text-align: left; max-height: 85vh; display: flex; flex-direction: column;
+  max-width: 660px; width: 92%; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.95);
+  text-align: left; max-height: 86vh; display: flex; flex-direction: column;
   overflow: hidden; position: relative;
 }
 .modal-body {
@@ -216,17 +216,18 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
 }
 
 .modal-box h2 { color: var(--white); margin: 0 0 8px 0; font-size: 22px; }
-.modal-box p { color: var(--text-muted); font-size: 13.5px; margin-bottom: 16px; line-height: 1.4; }
+.modal-box p { color: var(--text-muted); font-size: 13.5px; margin-bottom: 14px; line-height: 1.4; }
+.modal-label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px; font-weight: 600; }
 .modal-input {
-  width: 100%; padding: 11px 14px; border-radius: 10px; border: 1.5px solid var(--border-subtle);
-  background: #09090b; color: #fff; font-size: 14px; margin-bottom: 12px; outline: none;
+  width: 100%; padding: 10px 13px; border-radius: 10px; border: 1.5px solid var(--border-subtle);
+  background: #09090b; color: #fff; font-size: 13.5px; margin-bottom: 12px; outline: none;
 }
 .modal-input:focus, .modal-input.focused {
   border-color: var(--white); box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
 }
 
 .modal-btn {
-  padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 700;
+  padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 700;
   cursor: pointer; border: 1.5px solid transparent; white-space: nowrap; outline: none;
 }
 .modal-btn.focused {
@@ -288,6 +289,15 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   letter-spacing: 2px;
   margin-bottom: 10px;
 }
+.empty-players-banner {
+  background: rgba(250, 204, 21, 0.1);
+  border: 1px solid rgba(250, 204, 21, 0.35);
+  color: var(--gold);
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
 </style>
 </head>
 <body>
@@ -346,18 +356,25 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   </iframe>
 </div>
 
-<!-- First-Time User Setup Modal (TMDB Key + Initial Player + Remote Config) -->
+<!-- First-Time User Setup Modal (TMDB Key + Initial Player Setup) -->
 <div id="setupModal" class="modal-overlay">
   <div class="modal-box">
     <div class="modal-body">
       <h2>Welcome to CineHome Setup</h2>
-      <p>Configure your personal TMDB API key and optional streaming source. Everything is saved locally in your browser.</p>
+      <p>No players or keys are hardcoded. Enter your TMDB v3 API key and add your first streaming player URLs below (saved locally in your browser).</p>
 
-      <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">1. TMDB v3 API Key (Required if not set on server):</label>
-      <input id="setupTmdbKeyInput" class="modal-input" placeholder="e.g. 970bd0b45df9d662f02f81535049b33c">
+      <label class="modal-label">1. TMDB v3 API Key (Required if not configured on server):</label>
+      <input id="setupTmdbKeyInput" class="modal-input" placeholder="Enter your TMDB v3 API key">
 
-      <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">2. Custom Player Watch URL (Optional — dynamically parses <code>{domain}</code> &amp; <code>{id}</code>):</label>
-      <input id="setupCustomUrlInput" class="modal-input" placeholder="e.g. https://cinemaos.tech/player/1400940?theme=ffffff">
+      <label class="modal-label">2. First Player — Movie Embed URL (supports <code>{domain}</code>, <code>{id}</code> / <code>{tmdb_id}</code>):</label>
+      <input id="setupMovieEmbedInput" class="modal-input" placeholder="e.g. https://cinemaos.tech/player/{tmdb_id}">
+
+      <label class="modal-label">3. First Player — TV Show Embed URL (supports <code>{domain}</code>, <code>{id}</code>, <code>{season}</code>, <code>{episode}</code>):</label>
+      <input id="setupTvEmbedInput" class="modal-input" placeholder="e.g. https://cinemaos.tech/player/{tmdb_id}/{season}/{episode}">
+
+      <label class="modal-label">4. External Browser Watch URL (Optional — used when pressing 7 / Open External):</label>
+      <input id="setupExternalMovieInput" class="modal-input" placeholder="e.g. https://cinemaos.me/watch/movie/{tmdb_id}">
+      <input id="setupExternalTvInput" class="modal-input" placeholder="e.g. https://cinemaos.me/watch/tv/{tmdb_id}?season={season}&episode={episode}">
 
       <div class="shelf-toggle-item" id="setupSoundToggleRow" style="margin-top:8px;">
         <span style="font-size:13.5px;color:#fff;font-weight:600;">Navigation Sound Effects</span>
@@ -366,7 +383,7 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
     </div>
     <div class="modal-actions-sticky">
       <button id="btnSaveSetup" class="modal-btn btn-primary" type="button">Save &amp; Launch</button>
-      <button id="btnCloseSetup" class="modal-btn btn-secondary" type="button">Cancel</button>
+      <button id="btnCloseSetup" class="modal-btn btn-secondary" type="button">Close</button>
     </div>
   </div>
 </div>
@@ -413,17 +430,24 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   <div class="modal-box">
     <div class="modal-body" id="playerModalBody">
       <h2>Streaming Player Sources</h2>
-      <p>Add new providers using any movie or TV URL. The <code>{domain}</code> and <code>{id}</code> placeholders are extracted automatically and executed dynamically.</p>
+      <p>Add providers using sample URLs or placeholders (<code>{domain}</code>, <code>{tmdb_id}</code>, <code>{season}</code>, <code>{episode}</code>).</p>
       
       <div id="playerListContainer"></div>
 
       <div style="border-top:1px solid var(--border-subtle);padding-top:14px;margin-top:14px;">
         <h3 style="font-size:14px;margin:0 0 10px;color:var(--white);">+ Add Custom Streaming Source</h3>
-        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">1. Movie URL Example (e.g. <code>https://cinejoy.pk/watch/movie/1400940</code>):</label>
-        <input id="inputAddMovieUrl" class="modal-input" placeholder="https://domain.com/watch/movie/12345">
         
-        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">2. TV Show URL Example (e.g. <code>https://cinejoy.pk/watch/tv/213375/1/1</code>):</label>
-        <input id="inputAddTvUrl" class="modal-input" placeholder="https://domain.com/watch/tv/12345/1/1 (Optional)">
+        <label class="modal-label">1. Movie Embed URL (e.g. <code>https://cinemaos.tech/player/1368337</code>):</label>
+        <input id="inputAddMovieUrl" class="modal-input" placeholder="https://domain.com/player/{tmdb_id}">
+        
+        <label class="modal-label">2. TV Show Embed URL (e.g. <code>https://cinemaos.tech/player/213375/1/2</code>):</label>
+        <input id="inputAddTvUrl" class="modal-input" placeholder="https://domain.com/player/{tmdb_id}/{season}/{episode}">
+
+        <label class="modal-label">3. Direct External Browser Movie URL (Optional — e.g. <code>https://cinemaos.me/watch/movie/1368337</code>):</label>
+        <input id="inputAddExtMovieUrl" class="modal-input" placeholder="https://domain.com/watch/movie/{tmdb_id}">
+
+        <label class="modal-label">4. Direct External Browser TV URL (Optional — e.g. <code>https://cinemaos.me/watch/tv/213375?season=1&amp;episode=2</code>):</label>
+        <input id="inputAddExtTvUrl" class="modal-input" placeholder="https://domain.com/watch/tv/{tmdb_id}?season={season}&amp;episode={episode}">
       </div>
     </div>
     
@@ -439,25 +463,31 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   <div class="modal-box">
     <div class="modal-body">
       <h2 id="editPlayerTitle">Edit Player</h2>
-      <p>Click any mirror tag to set it as active, remove dead domains with ✕, or add backup domains.</p>
+      <p>Click any mirror tag to set it as active, remove dead domains with ✕, or add backup domains. Placeholders: <code>{domain}</code>, <code>{tmdb_id}</code>, <code>{season}</code>, <code>{episode}</code>.</p>
       
-      <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Provider Name:</label>
+      <label class="modal-label">Provider Name:</label>
       <input id="editPlayerName" class="modal-input">
 
-      <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Configured Mirrors (Click to set active):</label>
+      <label class="modal-label">Configured Mirrors (Click to set active):</label>
       <div id="editModalMirrorsContainer" class="player-mirrors-list" style="margin-bottom:12px;"></div>
 
-      <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Add Backup Mirror Domain:</label>
+      <label class="modal-label">Add Backup Mirror Domain:</label>
       <div style="display:flex;gap:8px;margin-bottom:14px;">
-        <input id="addMirrorInput" class="modal-input" style="margin-bottom:0;" placeholder="e.g. cinemaos.live">
+        <input id="addMirrorInput" class="modal-input" style="margin-bottom:0;" placeholder="e.g. cinemaos.me">
         <button id="btnAddMirrorDomain" class="modal-btn btn-secondary" type="button">+ Add</button>
       </div>
 
-      <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Movie URL Template ({domain}, {id}, {title}):</label>
+      <label class="modal-label">Movie Embed Template:</label>
       <input id="editPlayerMovieTpl" class="modal-input">
 
-      <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">TV URL Template ({domain}, {id}):</label>
+      <label class="modal-label">TV Embed Template:</label>
       <input id="editPlayerTvTpl" class="modal-input">
+
+      <label class="modal-label">External Browser Movie Template (Optional):</label>
+      <input id="editPlayerExtMovieTpl" class="modal-input" placeholder="Leave empty to use Movie Embed Template">
+
+      <label class="modal-label">External Browser TV Template (Optional):</label>
+      <input id="editPlayerExtTvTpl" class="modal-input" placeholder="Leave empty to use TV Embed Template">
     </div>
 
     <div class="modal-actions-sticky">
@@ -575,58 +605,124 @@ function loadShelfPreferences() {
 }
 loadShelfPreferences();
 
-/* Streaming Players & Dynamic {domain} Execution */
-let playerSources = [
-  {
-    name: "CinemaOS",
-    domains: ["cinemaos.tech", "cinemaos.me", "cinemaos.live"],
-    activeDomainIdx: 0,
-    movieTpl: "https://{domain}/player/{id}?theme=ffffff",
-    tvTpl: "https://{domain}/player/{id}?theme=ffffff&type=tv&s=1&e=1"
-  },
-  {
-    name: "Vidrift",
-    domains: ["embed.vidrift.net"],
-    activeDomainIdx: 0,
-    movieTpl: "https://{domain}/embed/movie/{id}?title={title}",
-    tvTpl: "https://{domain}/embed/tv/{id}/1/1"
-  },
-  {
-    name: "VidFast",
-    domains: ["vidfast.vc"],
-    activeDomainIdx: 0,
-    movieTpl: "https://{domain}/movie/{id}?autoPlay=true",
-    tvTpl: "https://{domain}/tv/{id}/1/1?autoPlay=true"
-  }
-];
+/* Zero Hardcoded Players: Populated via First-Time Setup, Server Config, or Manage Players */
+let playerSources = [];
 let activeSourceIdx = 0;
 let editingPlayerIdx = -1;
+
+/* Smart URL Template Parser:
+   Handles both literal sample URLs (e.g. https://cinemaos.tech/player/213375/1/2 or
+   https://cinemaos.me/watch/tv/213375?season=1&episode=2) AND pre-templated URLs
+   with {domain}, {id}, {tmdb_id}, {season}, {episode}. */
+function parseUrlToTemplate(rawUrl, forceType = null) {
+  const trimmed = (rawUrl || "").trim();
+  if (!trimmed) return null;
+
+  try {
+    // Allow URLs that already contain {domain} by temporarily substituting a dummy host for URL parsing
+    const hasDomainToken = trimmed.includes("{domain}");
+    const parseable = hasDomainToken ? trimmed.replaceAll("{domain}", "placeholder-domain.local") : trimmed;
+    const u = new URL(parseable);
+    const domain = hasDomainToken ? "" : u.hostname.replace(/^www\./, "");
+
+    let path = u.pathname;
+    let search = u.search;
+
+    // 1. Replace numeric IDs or existing ID tokens in pathname
+    const hasIdToken = /\{(tmdb_)?id\}/i.test(trimmed);
+    const isTV = forceType === "tv"
+      || /\/(tv|show|series)\b/i.test(path)
+      || /[?&](season|s)=/i.test(search)
+      || /\{season\}|\{s\}/i.test(trimmed);
+
+    if (!hasIdToken) {
+      // Check for /tv/{id}/{season}/{episode} or /player/{id}/{season}/{episode}
+      const tvTriple = path.match(/^(.*\/)(\d+)\/(\d+)\/(\d+)(\/?)$/);
+      if (tvTriple) {
+        path = `${tvTriple[1]}{tmdb_id}/{season}/{episode}${tvTriple[5]}`;
+      } else {
+        // Replace first numeric segment in path with {tmdb_id}
+        path = path.replace(/\/(\d+)(?=\/|$)/, "/{tmdb_id}");
+      }
+    }
+
+    // 2. Replace season/episode query params if present (e.g. ?season=1&episode=2 or ?s=1&e=1)
+    if (search) {
+      search = search
+        .replace(/([?&]season=)\d+/i, "$1{season}")
+        .replace(/([?&]episode=)\d+/i, "$1{episode}")
+        .replace(/([?&]s=)\d+/i, "$1{season}")
+        .replace(/([?&]e=)\d+/i, "$1{episode}");
+    }
+
+    const hostPart = "{domain}";
+    const fullTpl = `${u.protocol}//${hostPart}${path}${search}`;
+
+    let movieTpl, tvTpl;
+    if (isTV) {
+      tvTpl = fullTpl;
+      // Derive movie template cleanly if user only pasted a TV URL
+      movieTpl = fullTpl
+        .replace(/\/(tv|show|series)\b/i, "/movie")
+        .replace(/\/\{season\}\/\{episode\}/gi, "")
+        .replace(/\/\{s\}\/\{e\}/gi, "")
+        .replace(/[?&](season|episode|s|e)=\{[^}]+\}/gi, "")
+        .replace(/\?&/, "?")
+        .replace(/\?$/, "");
+    } else {
+      movieTpl = fullTpl;
+      // Derive TV template cleanly if user only pasted a Movie URL
+      if (/\/watch\/movie\b/i.test(fullTpl)) {
+        tvTpl = fullTpl.replace(/\/watch\/movie\b/i, "/watch/tv") + (search ? "&season={season}&episode={episode}" : "?season={season}&episode={episode}");
+      } else if (/\/movie\b/i.test(fullTpl)) {
+        tvTpl = fullTpl.replace(/\/movie\b/i, "/tv") + (search ? "" : "/{season}/{episode}");
+      } else {
+        // Standard /player/{tmdb_id} -> /player/{tmdb_id}/{season}/{episode}
+        tvTpl = `${u.protocol}//${hostPart}${path.replace(/\/$/, "")}/{season}/{episode}${search}`;
+      }
+    }
+
+    return { domain, isTV, movieTpl, tvTpl, rawTpl: fullTpl };
+  } catch (e) {
+    return null;
+  }
+}
 
 function normalizePlayer(p) {
   if (!p) return null;
   let domains = Array.isArray(p.domains) ? p.domains.filter(Boolean) : [];
   if (!domains.length && p.domain) domains = [p.domain];
-  if (!domains.length) {
-    if (p.name === "CinemaOS") domains = ["cinemaos.tech", "cinemaos.me", "cinemaos.live"];
-    else if (p.name === "Vidrift") domains = ["embed.vidrift.net"];
-    else if (p.name === "VidFast") domains = ["vidfast.vc"];
-    else domains = [p.name || "cinemaos.tech"];
-  }
 
-  let movieTpl = p.movieTpl || "https://{domain}/player/{id}?theme=ffffff";
-  let tvTpl = p.tvTpl || "https://{domain}/player/{id}?theme=ffffff&type=tv&s=1&e=1";
+  let movieTpl = p.movieTpl || "";
+  let tvTpl = p.tvTpl || "";
+  let extMovieTpl = p.extMovieTpl || "";
+  let extTvTpl = p.extTvTpl || "";
 
+  // Ensure any literal domain matching the list is tokenized to {domain}
   domains.forEach(d => {
-    movieTpl = movieTpl.replace(d, "{domain}");
-    tvTpl = tvTpl.replace(d, "{domain}");
+    const escaped = d.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const rx = new RegExp(`https?://(?:www\\.)?${escaped}`, "gi");
+    movieTpl = movieTpl.replace(rx, "https://{domain}");
+    tvTpl = tvTpl.replace(rx, "https://{domain}");
+    if (extMovieTpl) extMovieTpl = extMovieTpl.replace(rx, "https://{domain}");
+    if (extTvTpl) extTvTpl = extTvTpl.replace(rx, "https://{domain}");
   });
 
+  if (!domains.length) {
+    try {
+      const u = new URL(movieTpl.replaceAll("{domain}", "example.com").replace(/\{[^}]+\}/g, "1"));
+      if (u.hostname !== "example.com") domains = [u.hostname];
+    } catch (_) {}
+  }
+
   return {
-    name: p.name || domains[0],
+    name: p.name || domains[0] || "Custom Player",
     domains: [...new Set(domains)],
     activeDomainIdx: typeof p.activeDomainIdx === "number" && p.activeDomainIdx < domains.length ? p.activeDomainIdx : 0,
     movieTpl,
-    tvTpl
+    tvTpl,
+    extMovieTpl,
+    extTvTpl
   };
 }
 
@@ -635,8 +731,8 @@ function loadPlayersFromLocal(serverDefaults = null) {
     const localSaved = localStorage.getItem("cinehome_custom_players");
     if (localSaved) {
       const parsed = JSON.parse(localSaved);
-      if (Array.isArray(parsed) && parsed.length) {
-        playerSources = parsed.map(normalizePlayer);
+      if (Array.isArray(parsed)) {
+        playerSources = parsed.map(normalizePlayer).filter(Boolean);
         renderPlayerList();
         return;
       }
@@ -644,9 +740,9 @@ function loadPlayersFromLocal(serverDefaults = null) {
   } catch (e) {}
 
   if (Array.isArray(serverDefaults) && serverDefaults.length) {
-    playerSources = serverDefaults.map(normalizePlayer);
+    playerSources = serverDefaults.map(normalizePlayer).filter(Boolean);
   } else {
-    playerSources = playerSources.map(normalizePlayer);
+    playerSources = [];
   }
   renderPlayerList();
 }
@@ -657,41 +753,15 @@ function savePlayersLocally() {
   } catch (e) {}
 }
 
-/* Dynamic URL Parser: Extracts {domain} and {id} from any Movie or TV URL */
-function parseUrlToTemplate(rawUrl) {
-  try {
-    const u = new URL(rawUrl.trim());
-    const match = u.pathname.match(/\d+/);
-    if (!match) throw new Error("No numeric media ID found in URL path");
-    const detectedId = match[0];
-    const domain = u.hostname.replace(/^www\./, "");
-    const isTV = /\/(tv|show|series)\b/i.test(u.pathname) || u.search.includes("season=") || u.search.includes("s=");
-
-    // Replace hostname with {domain} and first numeric ID with {id}
-    let tpl = rawUrl.trim().replace(u.hostname, "{domain}").replace(detectedId, "{id}");
-
-    let movieTpl, tvTpl;
-    if (isTV) {
-      tvTpl = tpl;
-      movieTpl = tpl.replace(/\/(tv|show|series)\b/i, "/movie").replace(/\/1\/1$/, "");
-    } else {
-      movieTpl = tpl;
-      if (/\/movie\b/i.test(tpl)) {
-        tvTpl = tpl.replace(/\/movie\b/i, "/tv") + (tpl.includes("/1/1") || tpl.includes("?") ? "" : "/1/1");
-      } else {
-        tvTpl = tpl + (tpl.includes("?") ? "&type=tv&s=1&e=1" : "/1/1");
-      }
-    }
-
-    return { domain, detectedId, isTV, movieTpl, tvTpl };
-  } catch (e) {
-    return null;
-  }
-}
-
 function renderPlayerList() {
   const container = document.getElementById("playerListContainer");
   container.innerHTML = "";
+
+  if (!playerSources.length) {
+    container.innerHTML = `<div class="empty-players-banner">No players configured yet. Add your Movie and TV Show URLs below to start streaming.</div>`;
+    return;
+  }
+
   playerSources.forEach((p, idx) => {
     const card = document.createElement("div");
     card.className = "player-item-card";
@@ -758,6 +828,8 @@ window.openEditPlayer = function(idx) {
   document.getElementById("editPlayerName").value = p.name;
   document.getElementById("editPlayerMovieTpl").value = p.movieTpl;
   document.getElementById("editPlayerTvTpl").value = p.tvTpl;
+  document.getElementById("editPlayerExtMovieTpl").value = p.extMovieTpl || "";
+  document.getElementById("editPlayerExtTvTpl").value = p.extTvTpl || "";
   document.getElementById("addMirrorInput").value = "";
   renderEditModalMirrors();
   document.getElementById("editPlayerModal").style.display = "flex";
@@ -768,18 +840,12 @@ document.getElementById("btnSavePlayerEdit").onclick = () => {
   if (editingPlayerIdx < 0) return;
   const p = playerSources[editingPlayerIdx];
   p.name = document.getElementById("editPlayerName").value.trim() || p.name;
-  
-  let movieTpl = document.getElementById("editPlayerMovieTpl").value.trim() || p.movieTpl;
-  let tvTpl = document.getElementById("editPlayerTvTpl").value.trim() || p.tvTpl;
-  
-  p.domains.forEach(d => {
-    movieTpl = movieTpl.replace(d, "{domain}");
-    tvTpl = tvTpl.replace(d, "{domain}");
-  });
-  
-  p.movieTpl = movieTpl;
-  p.tvTpl = tvTpl;
-  
+  p.movieTpl = document.getElementById("editPlayerMovieTpl").value.trim() || p.movieTpl;
+  p.tvTpl = document.getElementById("editPlayerTvTpl").value.trim() || p.tvTpl;
+  p.extMovieTpl = document.getElementById("editPlayerExtMovieTpl").value.trim();
+  p.extTvTpl = document.getElementById("editPlayerExtTvTpl").value.trim();
+
+  playerSources[editingPlayerIdx] = normalizePlayer(p);
   savePlayersLocally();
   renderPlayerList();
   document.getElementById("editPlayerModal").style.display = "none";
@@ -817,10 +883,6 @@ document.getElementById("addMirrorInput").addEventListener("keydown", (e) => {
 });
 
 window.deletePlayer = function(idx) {
-  if (playerSources.length <= 1) {
-    alert("You must keep at least one streaming source.");
-    return;
-  }
   playerSources.splice(idx, 1);
   if (activeSourceIdx >= playerSources.length) activeSourceIdx = 0;
   renderPlayerList();
@@ -830,41 +892,60 @@ window.deletePlayer = function(idx) {
 document.getElementById("btnAddPlayerSubmit").onclick = () => {
   const movieVal = document.getElementById("inputAddMovieUrl").value.trim();
   const tvVal = document.getElementById("inputAddTvUrl").value.trim();
+  const extMovieVal = document.getElementById("inputAddExtMovieUrl").value.trim();
+  const extTvVal = document.getElementById("inputAddExtTvUrl").value.trim();
+
   if (!movieVal && !tvVal) {
-    alert("Please provide at least one watch URL.");
-    return;
-  }
-  
-  const primaryRaw = movieVal || tvVal;
-  const primaryParsed = parseUrlToTemplate(primaryRaw);
-  if (!primaryParsed) {
-    alert("Invalid URL. Please include a valid domain and numeric media ID (e.g. https://domain.com/watch/movie/1400940)");
+    alert("Please provide at least a Movie or TV Show URL.");
     return;
   }
 
-  let finalMovieTpl = primaryParsed.movieTpl;
-  let finalTvTpl = primaryParsed.tvTpl;
+  const movieParsed = movieVal ? parseUrlToTemplate(movieVal, "movie") : null;
+  const tvParsed = tvVal ? parseUrlToTemplate(tvVal, "tv") : null;
 
-  if (movieVal && tvVal) {
-    const tvParsed = parseUrlToTemplate(tvVal);
-    if (tvParsed) {
-      finalTvTpl = tvParsed.tvTpl.replace(tvParsed.domain, "{domain}");
-    }
+  if (!movieParsed && !tvParsed) {
+    alert("Could not parse URL. Include a valid URL or placeholders like https://domain.com/player/{tmdb_id}");
+    return;
+  }
+
+  const primaryDomain = (movieParsed && movieParsed.domain) || (tvParsed && tvParsed.domain) || "custom-player";
+  const domains = [primaryDomain];
+  if (tvParsed && tvParsed.domain && !domains.includes(tvParsed.domain)) {
+    domains.push(tvParsed.domain);
+  }
+
+  const finalMovieTpl = movieParsed ? movieParsed.movieTpl : tvParsed.movieTpl;
+  const finalTvTpl = tvParsed ? tvParsed.rawTpl : movieParsed.tvTpl;
+
+  let finalExtMovieTpl = "";
+  let finalExtTvTpl = "";
+  if (extMovieVal) {
+    const pExtM = parseUrlToTemplate(extMovieVal, "movie");
+    finalExtMovieTpl = pExtM ? pExtM.rawTpl : extMovieVal;
+  }
+  if (extTvVal) {
+    const pExtT = parseUrlToTemplate(extTvVal, "tv");
+    finalExtTvTpl = pExtT ? pExtT.rawTpl : extTvVal;
   }
 
   const newSource = {
-    name: primaryParsed.domain,
-    domains: [primaryParsed.domain],
+    name: primaryDomain,
+    domains,
     activeDomainIdx: 0,
     movieTpl: finalMovieTpl,
-    tvTpl: finalTvTpl
+    tvTpl: finalTvTpl,
+    extMovieTpl: finalExtMovieTpl,
+    extTvTpl: finalExtTvTpl
   };
 
   playerSources.push(normalizePlayer(newSource));
   savePlayersLocally();
   renderPlayerList();
+
   document.getElementById("inputAddMovieUrl").value = "";
   document.getElementById("inputAddTvUrl").value = "";
+  document.getElementById("inputAddExtMovieUrl").value = "";
+  document.getElementById("inputAddExtTvUrl").value = "";
   initModalDpad("playerModal");
 };
 
@@ -880,7 +961,10 @@ document.getElementById("btnClosePlayerModal").onclick = () => {
 /* First-Time Setup Modal Handlers */
 function openSetupModal() {
   document.getElementById("setupTmdbKeyInput").value = localStorage.getItem("cinehome_tmdb_api_key") || "";
-  document.getElementById("setupCustomUrlInput").value = "";
+  document.getElementById("setupMovieEmbedInput").value = "";
+  document.getElementById("setupTvEmbedInput").value = "";
+  document.getElementById("setupExternalMovieInput").value = "";
+  document.getElementById("setupExternalTvInput").value = "";
   document.getElementById("setupSoundCheckbox").checked = soundEnabled;
   document.getElementById("setupModal").style.display = "flex";
   initModalDpad("setupModal");
@@ -894,7 +978,10 @@ document.getElementById("setupSoundToggleRow").onclick = () => {
 
 document.getElementById("btnSaveSetup").onclick = () => {
   const keyVal = document.getElementById("setupTmdbKeyInput").value.trim();
-  const customUrlVal = document.getElementById("setupCustomUrlInput").value.trim();
+  const movieVal = document.getElementById("setupMovieEmbedInput").value.trim();
+  const tvVal = document.getElementById("setupTvEmbedInput").value.trim();
+  const extMovieVal = document.getElementById("setupExternalMovieInput").value.trim();
+  const extTvVal = document.getElementById("setupExternalTvInput").value.trim();
   soundEnabled = document.getElementById("setupSoundCheckbox").checked;
 
   if (keyVal) {
@@ -903,15 +990,22 @@ document.getElementById("btnSaveSetup").onclick = () => {
   localStorage.setItem("cinehome_sound_enabled", String(soundEnabled));
   localStorage.setItem("cinehome_setup_completed", "true");
 
-  if (customUrlVal) {
-    const parsed = parseUrlToTemplate(customUrlVal);
-    if (parsed) {
+  if (movieVal || tvVal) {
+    const movieParsed = movieVal ? parseUrlToTemplate(movieVal, "movie") : null;
+    const tvParsed = tvVal ? parseUrlToTemplate(tvVal, "tv") : null;
+    if (movieParsed || tvParsed) {
+      const domain = (movieParsed && movieParsed.domain) || (tvParsed && tvParsed.domain) || "custom-player";
+      const pExtM = extMovieVal ? parseUrlToTemplate(extMovieVal, "movie") : null;
+      const pExtT = extTvVal ? parseUrlToTemplate(extTvVal, "tv") : null;
+
       playerSources.unshift(normalizePlayer({
-        name: parsed.domain,
-        domains: [parsed.domain],
+        name: domain,
+        domains: [domain],
         activeDomainIdx: 0,
-        movieTpl: parsed.movieTpl,
-        tvTpl: parsed.tvTpl
+        movieTpl: movieParsed ? movieParsed.movieTpl : tvParsed.movieTpl,
+        tvTpl: tvParsed ? tvParsed.rawTpl : movieParsed.tvTpl,
+        extMovieTpl: pExtM ? pExtM.rawTpl : extMovieVal,
+        extTvTpl: pExtT ? pExtT.rawTpl : extTvVal
       }));
       activeSourceIdx = 0;
       savePlayersLocally();
@@ -984,7 +1078,7 @@ document.getElementById("btnOpenKeyConfig").onclick = () => {
     const row = document.createElement("div");
     row.style.marginBottom = "10px";
     row.innerHTML = `
-      <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">${action}:</label>
+      <label class="modal-label">${action}:</label>
       <input class="modal-input key-map-input" data-action="${action}" value="${(KEY_MAP[action] || []).join(", ")}">
     `;
     list.appendChild(row);
@@ -1194,7 +1288,10 @@ function getModalFocusableElements(modalId) {
   if (modalId === "setupModal") {
     return [
       document.getElementById("setupTmdbKeyInput"),
-      document.getElementById("setupCustomUrlInput"),
+      document.getElementById("setupMovieEmbedInput"),
+      document.getElementById("setupTvEmbedInput"),
+      document.getElementById("setupExternalMovieInput"),
+      document.getElementById("setupExternalTvInput"),
       document.getElementById("setupSoundToggleRow"),
       document.getElementById("btnSaveSetup"),
       document.getElementById("btnCloseSetup")
@@ -1222,7 +1319,12 @@ function getModalFocusableElements(modalId) {
   }
   if (modalId === "playerModal") {
     const editBtns = [...modal.querySelectorAll(".player-edit-btn, .player-del-btn")];
-    const inputs = [document.getElementById("inputAddMovieUrl"), document.getElementById("inputAddTvUrl")];
+    const inputs = [
+      document.getElementById("inputAddMovieUrl"),
+      document.getElementById("inputAddTvUrl"),
+      document.getElementById("inputAddExtMovieUrl"),
+      document.getElementById("inputAddExtTvUrl")
+    ];
     const actions = [document.getElementById("btnAddPlayerSubmit"), document.getElementById("btnClosePlayerModal")];
     return [...editBtns, ...inputs, ...actions];
   }
@@ -1233,6 +1335,8 @@ function getModalFocusableElements(modalId) {
       document.getElementById("btnAddMirrorDomain"),
       document.getElementById("editPlayerMovieTpl"),
       document.getElementById("editPlayerTvTpl"),
+      document.getElementById("editPlayerExtMovieTpl"),
+      document.getElementById("editPlayerExtTvTpl"),
       document.getElementById("btnSavePlayerEdit"),
       document.getElementById("btnCancelPlayerEdit")
     ];
@@ -1703,25 +1807,46 @@ function triggerHudActivity() {
 }
 document.addEventListener("mousemove", triggerHudActivity);
 
-/* Dynamic {domain} Execution Engine */
-function getResolvedPlayerUrl(playerObj, item) {
+/* Dynamic {domain} & Season/Episode URL Resolver (Supports Embed & Direct External Modes) */
+function getResolvedPlayerUrl(playerObj, item, mode = "embed") {
   if (!item || !playerObj) return "";
   const isTV = item.media_type === "tv" || !!item.first_air_date;
   const id = encodeURIComponent(item.id);
   const title = encodeURIComponent(item.title || item.name || "");
-  
-  const domains = Array.isArray(playerObj.domains) && playerObj.domains.length ? playerObj.domains : ["cinemaos.tech"];
-  const activeDomain = domains[playerObj.activeDomainIdx || 0] || domains[0];
-  
-  let template = isTV ? (playerObj.tvTpl || playerObj.movieTpl) : playerObj.movieTpl;
-  
-  let resolved = template;
-  if (resolved.includes("{domain}")) {
-    resolved = resolved.replaceAll("{domain}", activeDomain);
+  const season = encodeURIComponent(item.season || 1);
+  const episode = encodeURIComponent(item.episode || 1);
+
+  const domains = Array.isArray(playerObj.domains) && playerObj.domains.length ? playerObj.domains : [];
+  const activeDomain = domains[playerObj.activeDomainIdx || 0] || domains[0] || "";
+
+  let template = "";
+  if (mode === "external") {
+    template = isTV
+      ? (playerObj.extTvTpl || playerObj.tvTpl || playerObj.movieTpl)
+      : (playerObj.extMovieTpl || playerObj.movieTpl);
   } else {
-    resolved = resolved.replace(/^https?:\/\/[^\/]+/, `https://${activeDomain}`);
+    template = isTV
+      ? (playerObj.tvTpl || playerObj.movieTpl)
+      : playerObj.movieTpl;
   }
-  return resolved.replaceAll("{id}", id).replaceAll("{title}", title);
+
+  let resolved = template || "";
+  if (activeDomain) {
+    if (resolved.includes("{domain}")) {
+      resolved = resolved.replaceAll("{domain}", activeDomain);
+    } else {
+      resolved = resolved.replace(/^https?:\/\/[^\/]+/, `https://${activeDomain}`);
+    }
+  }
+
+  return resolved
+    .replaceAll("{tmdb_id}", id)
+    .replaceAll("{id}", id)
+    .replaceAll("{season}", season)
+    .replaceAll("{episode}", episode)
+    .replaceAll("{s}", season)
+    .replaceAll("{e}", episode)
+    .replaceAll("{title}", title);
 }
 
 function showStreamBanner(text) {
@@ -1741,10 +1866,17 @@ function updatePlayerDpadFocus() {
 
 function loadPlayerSource() {
   if (!currentItem) return;
-  const activePlayer = playerSources[activeSourceIdx];
-  const directUrl = getResolvedPlayerUrl(activePlayer, currentItem);
+  if (!playerSources.length) {
+    closePlayer();
+    document.getElementById("playerModal").style.display = "flex";
+    initModalDpad("playerModal");
+    return;
+  }
 
-  playerFrame.src = directUrl;
+  const activePlayer = playerSources[activeSourceIdx];
+  const embedUrl = getResolvedPlayerUrl(activePlayer, currentItem, "embed");
+
+  playerFrame.src = embedUrl;
   triggerHudActivity();
 
   const domains = Array.isArray(activePlayer.domains) && activePlayer.domains.length ? activePlayer.domains : [activePlayer.name];
@@ -1754,14 +1886,15 @@ function loadPlayerSource() {
 }
 
 function launchExternal() {
-  if (!currentItem) return;
+  if (!currentItem || !playerSources.length) return;
   const activePlayer = playerSources[activeSourceIdx];
-  const directUrl = getResolvedPlayerUrl(activePlayer, currentItem);
+  const externalUrl = getResolvedPlayerUrl(activePlayer, currentItem, "external");
   playTickSound();
-  window.open(directUrl, "_blank");
+  window.open(externalUrl, "_blank");
 }
 
 function toggleUniversalNext() {
+  if (!playerSources.length) return;
   playTickSound();
   const currentP = playerSources[activeSourceIdx];
 
@@ -1782,6 +1915,11 @@ function toggleUniversalNext() {
 
 function playMedia(m) {
   if (!m || !m.id) return;
+  if (!playerSources.length) {
+    document.getElementById("playerModal").style.display = "flex";
+    initModalDpad("playerModal");
+    return;
+  }
   recordRecentMedia(m);
   playSelectSound();
   currentItem = m;
@@ -2280,7 +2418,7 @@ document.addEventListener("keydown", e => {
   else if (matchesAction(e, "SELECT")) { e.preventDefault(); executeCommand("SELECT"); }
 });
 
-/* Boot Sequence: Checks Server Config & Launches First-Time Setup if Needed */
+/* Boot Sequence: Checks Server Config & Launches First-Time Setup if Unconfigured */
 async function bootApp() {
   let bootInfo = { hasServerKey: false, serverPlayers: null, baseUrl: window.location.origin };
   try {
@@ -2295,9 +2433,9 @@ async function bootApp() {
   const localKey = (localStorage.getItem("cinehome_tmdb_api_key") || "").trim();
   const setupDone = localStorage.getItem("cinehome_setup_completed") === "true";
 
-  if (!bootInfo.hasServerKey && !localKey && !setupDone) {
+  if ((!bootInfo.hasServerKey && !localKey) || (!playerSources.length && !setupDone)) {
     openSetupModal();
-    statusEl.textContent = "Complete First-Time Setup to load catalog";
+    statusEl.textContent = "Complete First-Time Setup to start";
     return;
   }
 
