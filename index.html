@@ -127,7 +127,6 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
 .rating-chip { color: var(--gold); font-weight: 700; display: flex; align-items: center; gap: 3px; }
 .card p, .resultCard p { font-size: 12px; color: #a1a1aa; margin: 0; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 
-/* Full-Screen Unsandboxed Player */
 #player {
   position: fixed; inset: 0; z-index: 500;
   width: 100vw; height: 100vh;
@@ -188,7 +187,6 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
 #resultsGrid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: var(--card-height); gap: var(--row-gap) var(--rail-gap); padding: 16px 4px 50px 4px; scrollbar-width: none; }
 #resultsGrid::-webkit-scrollbar { display: none; }
 
-/* Modals */
 .modal-overlay {
   display: none; position: fixed; inset: 0; z-index: 600;
   background: rgba(0, 0, 0, 0.88);
@@ -346,11 +344,11 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   <div class="modal-box" style="text-align:center;">
     <div class="modal-body" style="text-align:center;">
       <h2>📱 Control TV From Your Phone</h2>
-      <p>Scan this QR code with your phone's camera (on the same Wi-Fi) to open the touch remote and keyboard.</p>
+      <p>Scan this QR code with your phone's camera to open the touch remote and keyboard.</p>
       <div class="qr-card">
         <img id="qrCodeImage" width="210" height="210" alt="Scan QR Code for Web Remote">
       </div>
-      <div id="qrRemoteUrlText" class="qr-url-box">Loading LAN address...</div>
+      <div id="qrRemoteUrlText" class="qr-url-box">Loading address...</div>
     </div>
     <div class="modal-actions-sticky" style="justify-content:center;">
       <button id="btnCloseQrModal" class="modal-btn btn-primary" type="button">Done</button>
@@ -541,17 +539,33 @@ function normalizePlayer(p) {
 
 async function syncCustomPlayers() {
   try {
+    const localSaved = localStorage.getItem("cinehome_custom_players");
+    if (localSaved) {
+      const parsed = JSON.parse(localSaved);
+      if (Array.isArray(parsed) && parsed.length) {
+        playerSources = parsed.map(normalizePlayer);
+      }
+    }
+  } catch (e) {}
+
+  try {
     const r = await fetch("/api/players");
     const d = await r.json();
     if (Array.isArray(d.players) && d.players.length) {
       playerSources = d.players.map(normalizePlayer);
+      localStorage.setItem("cinehome_custom_players", JSON.stringify(playerSources));
     }
-  } catch(e) {}
+  } catch (e) {}
+
   playerSources = playerSources.map(normalizePlayer);
   renderPlayerList();
 }
 
 function savePlayersToServer() {
+  try {
+    localStorage.setItem("cinehome_custom_players", JSON.stringify(playerSources));
+  } catch (e) {}
+
   fetch("/api/players", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1290,7 +1304,7 @@ async function loadHome() {
         }
       }
       if (!loaded) {
-        s.rail.innerHTML = "<div style='color:var(--text-muted);font-size:13px;padding:12px;'>Network busy or TMDB key missing in config.json.</div>";
+        s.rail.innerHTML = "<div style='color:var(--text-muted);font-size:13px;padding:12px;'>Network busy. Hover here to retry.</div>";
         s.section.onmouseenter = async () => {
           try {
             s.items = await getMedia(queueDefinitions[s.index]);
@@ -1914,7 +1928,9 @@ function executeCommand(cmd, payload = null) {
   }
 }
 
-/* Real-Time Phone Web Remote SSE Listener */
+/* Real-Time Phone Web Remote Listener (SSE + Serverless Polling Hybrid) */
+let lastProcessedSeq = 0;
+
 function initRemoteEventStream() {
   const badge = document.getElementById("phoneConnBadge");
   try {
@@ -1925,6 +1941,8 @@ function initRemoteEventStream() {
     evtSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        if (data.seq && data.seq <= lastProcessedSeq) return;
+        if (data.seq) lastProcessedSeq = data.seq;
         if (data && data.action) {
           executeCommand(data.action, data.value);
         }
@@ -1934,6 +1952,22 @@ function initRemoteEventStream() {
       if (badge) badge.textContent = "📱 Phone Remote Ready";
     };
   } catch (_) {}
+
+  // Lightweight polling fallback for Vercel serverless functions
+  setInterval(async () => {
+    try {
+      const r = await fetch(`/api/remote-poll?since=${lastProcessedSeq}`);
+      const d = await r.json();
+      if (Array.isArray(d.commands)) {
+        for (const cmdObj of d.commands) {
+          if (cmdObj.seq > lastProcessedSeq) {
+            lastProcessedSeq = cmdObj.seq;
+            if (cmdObj.action) executeCommand(cmdObj.action, cmdObj.value);
+          }
+        }
+      }
+    } catch (_) {}
+  }, 1500);
 }
 
 /* Physical Keyboard / Remote Key Listener */
