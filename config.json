@@ -1,12 +1,34 @@
 {
   "tmdbApiKey": "970bd0b45df9d662f02f81535049b33c",
-  "playerTemplates": {
-    "vidriftMovie": "https://embed.vidrift.net/embed/movie/{id}?title={title}",
-    "vidriftTV": "https://embed.vidrift.net/embed/tv/{id}/1/1",
-    "cinemaosMovie": "https://cinemaos.tech/player/{id}?theme=ffffff",
-    "cinemaosTV": "https://cinemaos.tech/player/{id}?theme=ffffff&type=tv&s=1&e=1",
-    "vidfastMovie": "https://vidfast.vc/movie/{id}?autoPlay=true",
-    "vidfastTV": "https://vidfast.vc/tv/{id}/1/1?autoPlay=true"
-  },
-  "remoteProfile": null
+  "customPlayers": [
+    {
+      "name": "CinemaOS",
+      "domains": [
+        "cinemaos.tech",
+        "cinemaos.me",
+        "cinemaos.live"
+      ],
+      "activeDomainIdx": 0,
+      "movieTpl": "https://{domain}/player/{id}?theme=ffffff",
+      "tvTpl": "https://{domain}/player/{id}?theme=ffffff&type=tv&s=1&e=1"
+    },
+    {
+      "name": "Vidrift",
+      "domains": [
+        "embed.vidrift.net"
+      ],
+      "activeDomainIdx": 0,
+      "movieTpl": "https://{domain}/embed/movie/{id}?title={title}",
+      "tvTpl": "https://{domain}/embed/tv/{id}/1/1"
+    },
+    {
+      "name": "VidFast",
+      "domains": [
+        "vidfast.vc"
+      ],
+      "activeDomainIdx": 0,
+      "movieTpl": "https://{domain}/movie/{id}?autoPlay=true",
+      "tvTpl": "https://{domain}/tv/{id}/1/1?autoPlay=true"
+    }
+  ]
 }
