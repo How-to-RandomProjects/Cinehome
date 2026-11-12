@@ -1,9 +1,8 @@
 'use strict';
 
-// CineHome local server. Requires Node.js 18+ (built-in fetch).
-// Keeps the TMDB API key in config.json and proxies TMDB requests server-side.
 const http = require('node:http');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { URL } = require('node:url');
 
@@ -11,40 +10,38 @@ const HOST = process.env.CINEHOME_HOST || '0.0.0.0';
 const PORT = Number(process.env.PORT || process.env.CINEHOME_PORT || 3000);
 const ROOT = __dirname;
 const HTML_FILE = path.join(ROOT, 'index.html');
+const REMOTE_FILE = path.join(ROOT, 'remote.html');
 const CONFIG_FILE = path.join(ROOT, 'config.json');
 const MAX_BODY = 64 * 1024;
 
-const DEFAULT_REMOTE_PROFILE = {
-  UP: ['2', 'ArrowUp', 'Up', 'Numpad8'],
-  DOWN: ['8', 'ArrowDown', 'Down', 'Numpad2'],
-  LEFT: ['4', 'ArrowLeft', 'Left', 'Numpad4'],
-  RIGHT: ['6', 'ArrowRight', 'Right', 'Numpad6'],
-  SELECT: ['5', 'Enter', 'Select', 'NumpadEnter'],
-  BACK: ['0', 'Escape', 'Backspace', 'BrowserBack', 'GoBack', 'Numpad0'],
-  SEARCH: ['1', 'Numpad1'],
-  MIRROR: ['3', 'F3', 'Numpad3']
-};
-const ACTIONS = Object.keys(DEFAULT_REMOTE_PROFILE);
-const DEFAULT_PLAYER_TEMPLATES = {
-  vidriftMovie: 'https://embed.vidrift.net/embed/movie/{id}?title={title}',
-  vidriftTV: 'https://embed.vidrift.net/embed/tv/{id}/1/1',
-  cinemaosMovie: 'https://cinemaos.tech/player/{id}?theme=ffffff',
-  cinemaosTV: 'https://cinemaos.tech/player/{id}?theme=ffffff&type=tv&s=1&e=1',
-  vidfastMovie: 'https://vidfast.vc/movie/{id}?autoPlay=true',
-  vidfastTV: 'https://vidfast.vc/tv/{id}/1/1?autoPlay=true'
-};
+const tmdbCache = new Map();
+const CACHE_TTL_MS = 15 * 60 * 1000;
+
+// Connected TV displays listening for remote commands
+const sseClients = new Set();
+
+function getLocalNetworkIP() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return '127.0.0.1';
+}
 
 function readConfig() {
   try {
     const parsed = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
     return {
       tmdbApiKey: typeof parsed.tmdbApiKey === 'string' ? parsed.tmdbApiKey : '',
-      playerTemplates: { ...DEFAULT_PLAYER_TEMPLATES, ...(parsed.playerTemplates || {}) },
+      customPlayers: Array.isArray(parsed.customPlayers) ? parsed.customPlayers : [],
       remoteProfile: parsed.remoteProfile && typeof parsed.remoteProfile === 'object' ? parsed.remoteProfile : null
     };
   } catch (error) {
-    if (error.code !== 'ENOENT') console.error('Could not read config.json:', error.message);
-    return { tmdbApiKey: '', playerTemplates: { ...DEFAULT_PLAYER_TEMPLATES }, remoteProfile: null };
+    return { tmdbApiKey: '', customPlayers: [], remoteProfile: null };
   }
 }
 
@@ -63,8 +60,7 @@ function send(res, status, payload, contentType = 'application/json; charset=utf
     'Content-Length': Buffer.byteLength(body),
     'Cache-Control': 'no-store',
     'X-Content-Type-Options': 'nosniff',
-    'Referrer-Policy': 'no-referrer',
-    'X-Frame-Options': 'SAMEORIGIN'
+    'Access-Control-Allow-Origin': '*'
   });
   res.end(body);
 }
@@ -87,42 +83,15 @@ function readBody(req) {
   });
 }
 
-function validatePlayerTemplates(input) {
-  const result = {};
-  for (const key of Object.keys(DEFAULT_PLAYER_TEMPLATES)) {
-    const value = typeof input?.[key] === 'string' && input[key].trim()
-      ? input[key].trim()
-      : DEFAULT_PLAYER_TEMPLATES[key];
-    let parsed;
-    try { parsed = new URL(value.replaceAll('{id}', '123').replaceAll('{title}', 'Example')); }
-    catch (_) { throw new Error(`Invalid URL for ${key}`); }
-    if (parsed.protocol !== 'https:' || !value.includes('{id}')) {
-      throw new Error(`${key} must be an HTTPS URL containing the {id} placeholder`);
+function broadcastCommand(payload) {
+  const message = `data: ${JSON.stringify(payload)}\n\n`;
+  for (const client of sseClients) {
+    try {
+      client.write(message);
+    } catch (_) {
+      sseClients.delete(client);
     }
-    result[key] = value;
   }
-  return result;
-}
-
-function validateRemoteProfile(input) {
-  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Remote profile is missing');
-  const profile = {};
-  const keyToAction = new Map();
-  for (const action of ACTIONS) {
-    const keys = input[action];
-    if (!Array.isArray(keys) || keys.length < 1 || keys.length > 8) {
-      throw new Error(`Invalid keys for ${action}`);
-    }
-    const clean = [...new Set(keys.filter(k => typeof k === 'string' && k.length > 0 && k.length <= 80))];
-    if (!clean.length) throw new Error(`No valid keys for ${action}`);
-    for (const key of clean) {
-      const owner = keyToAction.get(key);
-      if (owner && owner !== action) throw new Error(`Key ${key} is already assigned to ${owner}`);
-      keyToAction.set(key, action);
-    }
-    profile[action] = clean;
-  }
-  return profile;
 }
 
 async function handle(req, res) {
@@ -130,84 +99,125 @@ async function handle(req, res) {
   const pathname = url.pathname;
   const config = readConfig();
 
-  if (req.method === 'GET' && pathname === '/api/status') {
-    return send(res, 200, { configured: Boolean(config.tmdbApiKey) });
+  // 1. Server Info for QR Code Generation
+  if (req.method === 'GET' && pathname === '/api/network-info') {
+    const ip = getLocalNetworkIP();
+    return send(res, 200, {
+      ip,
+      port: PORT,
+      remoteUrl: `http://${ip}:${PORT}/remote`,
+      connectedScreens: sseClients.size
+    });
   }
 
-  if (req.method === 'GET' && pathname === '/api/config') {
-    return send(res, 200, { playerTemplates: config.playerTemplates });
+  // 2. Real-Time Event Stream (TV Listens Here)
+  if (req.method === 'GET' && pathname === '/api/remote-events') {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'
+    });
+    res.write(`data: ${JSON.stringify({ type: 'CONNECTED' })}\n\n`);
+    sseClients.add(res);
+
+    const keepAlive = setInterval(() => {
+      try { res.write(': ping\n\n'); } catch (_) {}
+    }, 15000);
+
+    req.on('close', () => {
+      clearInterval(keepAlive);
+      sseClients.delete(res);
+    });
+    return;
   }
 
-  if (req.method === 'GET' && pathname === '/api/remote-config') {
-    return send(res, 200, { profile: config.remoteProfile || null });
-  }
-
-  if (req.method === 'POST' && pathname === '/api/setup') {
-    if (config.tmdbApiKey) return send(res, 409, { error: 'CineHome is already configured. To reset setup, stop the server and remove config.json, then restart.' });
+  // 3. Receive Command from Phone Web Remote
+  if (req.method === 'POST' && pathname === '/api/remote-cmd') {
     let body;
     try { body = await readBody(req); }
-    catch (error) { return send(res, 400, { error: error.message }); }
-    const apiKey = typeof body.tmdbApiKey === 'string' ? body.tmdbApiKey.trim() : '';
-    if (!/^[A-Za-z0-9_-]{20,100}$/.test(apiKey)) return send(res, 400, { error: 'That does not look like a valid TMDB API key.' });
-    let playerTemplates;
-    try { playerTemplates = validatePlayerTemplates(body.playerTemplates || {}); }
-    catch (error) { return send(res, 400, { error: error.message }); }
-    try {
-      const test = await fetch(`https://api.themoviedb.org/3/configuration?api_key=${encodeURIComponent(apiKey)}`, { signal: AbortSignal.timeout(10000) });
-      if (!test.ok) return send(res, 400, { error: 'TMDB did not accept this key. Check it and try again.' });
-    } catch (_) {
-      return send(res, 502, { error: 'Could not contact TMDB to verify the key. Check internet access and try again.' });
-    }
-    const fresh = { tmdbApiKey: apiKey, playerTemplates, remoteProfile: null };
-    try { writeConfig(fresh); }
-    catch (error) { return send(res, 500, { error: 'Could not write config.json: ' + error.message }); }
-    return send(res, 200, { ok: true, playerTemplates });
+    catch (e) { return send(res, 400, { error: e.message }); }
+    broadcastCommand(body);
+    return send(res, 200, { ok: true, deliveredTo: sseClients.size });
   }
 
-  if (req.method === 'POST' && pathname === '/api/save-remote-config') {
+  // 4. Custom Players API
+  if (req.method === 'GET' && pathname === '/api/players') {
+    return send(res, 200, { players: config.customPlayers });
+  }
+
+  if (req.method === 'POST' && pathname === '/api/players') {
     let body;
     try { body = await readBody(req); }
-    catch (error) { return send(res, 400, { error: error.message }); }
-    let profile;
-    try { profile = validateRemoteProfile(body.profile); }
-    catch (error) { return send(res, 400, { error: error.message }); }
-    config.remoteProfile = profile;
-    try { writeConfig(config); }
-    catch (error) { return send(res, 500, { error: 'Could not save remote profile: ' + error.message }); }
-    return send(res, 200, { ok: true });
+    catch (e) { return send(res, 400, { error: e.message }); }
+    if (!Array.isArray(body.players)) return send(res, 400, { error: 'Invalid players list' });
+    config.customPlayers = body.players;
+    writeConfig(config);
+    return send(res, 200, { ok: true, players: config.customPlayers });
   }
 
+  // 5. TMDB Proxy with In-Memory Cache
   if (req.method === 'GET' && pathname === '/api/tmdb') {
-    if (!config.tmdbApiKey) return send(res, 428, { error: 'CineHome setup is required' });
+    if (!config.tmdbApiKey) return send(res, 428, { error: 'TMDB key missing' });
     const tmdbPath = url.searchParams.get('path') || '';
     if (!tmdbPath.startsWith('/') || tmdbPath.startsWith('//') || tmdbPath.includes('..') || tmdbPath.includes('://')) {
       return send(res, 400, { error: 'Invalid TMDB path' });
     }
+
+    const cached = tmdbCache.get(tmdbPath);
+    if (cached && (Date.now() - cached.time < CACHE_TTL_MS)) {
+      return send(res, 200, cached.data);
+    }
+
+    let lastError = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const target = new URL(`https://api.themoviedb.org/3${tmdbPath}`);
+        target.searchParams.set('api_key', config.tmdbApiKey);
+        const upstream = await fetch(target, {
+          headers: { Accept: 'application/json' },
+          signal: AbortSignal.timeout(15000)
+        });
+        const text = await upstream.text();
+        if (upstream.ok) {
+          tmdbCache.set(tmdbPath, { time: Date.now(), data: text });
+          return send(res, upstream.status, text);
+        }
+      } catch (err) {
+        lastError = err;
+        await new Promise(r => setTimeout(r, 300 * (attempt + 1)));
+      }
+    }
+    return send(res, 502, { error: 'TMDB request failed', detail: lastError?.message });
+  }
+
+  // 6. Serve Mobile Web Remote (/remote)
+  if (req.method === 'GET' && pathname === '/remote') {
     try {
-      const target = new URL(`https://api.themoviedb.org/3${tmdbPath}`);
-      target.searchParams.set('api_key', config.tmdbApiKey);
-      const upstream = await fetch(target, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
-      const text = await upstream.text();
-      return send(res, upstream.status, text, upstream.headers.get('content-type') || 'application/json; charset=utf-8');
-    } catch (error) {
-      return send(res, 502, { error: 'TMDB request failed', detail: error.name === 'TimeoutError' ? 'Request timed out' : 'Check server internet access' });
+      const html = fs.readFileSync(REMOTE_FILE);
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Length': html.length,
+        'Cache-Control': 'no-store'
+      });
+      return res.end(html);
+    } catch (_) {
+      return send(res, 500, 'Could not read remote.html', 'text/plain');
     }
   }
 
+  // 7. Serve Main TV Interface (/)
   if (req.method === 'GET' && (pathname === '/' || pathname === '/index.html')) {
     try {
       const html = fs.readFileSync(HTML_FILE);
       res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
         'Content-Length': html.length,
-        'Cache-Control': 'no-store',
-        'X-Content-Type-Options': 'nosniff',
-        'Referrer-Policy': 'no-referrer',
-        'Content-Security-Policy': "default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' https: data:; frame-src https: about:; connect-src 'self' https://api.themoviedb.org https://image.tmdb.org;"
+        'Cache-Control': 'no-store'
       });
       return res.end(html);
     } catch (_) {
-      return send(res, 500, 'Could not read index.html', 'text/plain; charset=utf-8');
+      return send(res, 500, 'Could not read index.html', 'text/plain');
     }
   }
 
@@ -223,7 +233,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`CineHome server running at http://localhost:${PORT}`);
-  console.log(`Open this server from your TV using the phone's LAN IP and port ${PORT}.`);
-  if (!readConfig().tmdbApiKey) console.log('First-run setup will appear when CineHome is opened.');
+  const ip = getLocalNetworkIP();
+  console.log(`CineHome TV running at:     http://${ip}:${PORT}`);
+  console.log(`Mobile Web Remote at:     http://${ip}:${PORT}/remote`);
 });

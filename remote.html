@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CineHome Remote</title>
+<style>
+:root {
+  --bg: #09090b;
+  --surface: #14141a;
+  --surface-press: #272732;
+  --border: rgba(255, 255, 255, 0.14);
+  --white: #ffffff;
+  --muted: #a1a1aa;
+  --mint: #4ef2bb;
+  --danger: #f87171;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+body {
+  margin: 0;
+  padding: 16px 18px 28px;
+  background: var(--bg);
+  color: var(--white);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+
+.conn-pill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(78, 242, 187, 0.12);
+  color: var(--mint);
+  border: 1px solid rgba(78, 242, 187, 0.3);
+}
+
+/* Direct Phone-to-TV Search Input */
+.search-box {
+  display: flex;
+  gap: 8px;
+}
+
+.search-box input {
+  flex: 1;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: var(--white);
+  font-size: 15px;
+  outline: none;
+  user-select: text;
+}
+
+.search-box input:focus {
+  border-color: var(--white);
+}
+
+.btn-send {
+  background: var(--white);
+  color: #000;
+  border: none;
+  border-radius: 12px;
+  padding: 0 18px;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* Circular Ergonomic D-Pad */
+.dpad-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 6px 0;
+}
+
+.dpad-ring {
+  width: min(74vw, 270px);
+  height: min(74vw, 270px);
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1.15fr 1fr;
+  grid-template-rows: 1fr 1.15fr 1fr;
+  padding: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85);
+}
+
+.pad-btn {
+  background: transparent;
+  border: none;
+  color: var(--white);
+  font-size: 22px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  cursor: pointer;
+  transition: background 0.1s, transform 0.08s;
+}
+
+.pad-btn:active {
+  background: var(--surface-press);
+  transform: scale(0.94);
+}
+
+.pad-ok {
+  background: var(--white);
+  color: #000;
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 18px rgba(255, 255, 255, 0.25);
+}
+
+.pad-ok:active {
+  background: #d4d4d8;
+  transform: scale(0.92);
+}
+
+/* Action Grid */
+.action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.act-btn {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  color: var(--white);
+  padding: 15px 12px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.act-btn:active {
+  background: var(--surface-press);
+  border-color: var(--white);
+  transform: scale(0.97);
+}
+
+.act-btn.exit-btn {
+  background: rgba(248, 113, 113, 0.12);
+  border-color: rgba(248, 113, 113, 0.35);
+  color: var(--danger);
+}
+
+.act-btn.span-2 {
+  grid-column: span 2;
+}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="brand">CineHome Remote</div>
+  <div id="connStatus" class="conn-pill">● Ready</div>
+</div>
+
+<form class="search-box" id="remoteSearchForm">
+  <input id="remoteSearchInput" type="search" placeholder="Type title to search on TV..." autocomplete="off">
+  <button class="btn-send" type="submit">Go</button>
+</form>
+
+<div class="dpad-wrapper">
+  <div class="dpad-ring">
+    <div></div>
+    <button class="pad-btn" type="button" data-cmd="UP">▲</button>
+    <div></div>
+
+    <button class="pad-btn" type="button" data-cmd="LEFT">◀</button>
+    <button class="pad-btn pad-ok" type="button" data-cmd="SELECT">OK</button>
+    <button class="pad-btn" type="button" data-cmd="RIGHT">▶</button>
+
+    <div></div>
+    <button class="pad-btn" type="button" data-cmd="DOWN">▼</button>
+    <div></div>
+  </div>
+</div>
+
+<div class="action-grid">
+  <button class="act-btn exit-btn" type="button" data-cmd="BACK">✕ Back / Home</button>
+  <button class="act-btn" type="button" data-cmd="SEARCH">🔍 Open Search</button>
+  <button class="act-btn" type="button" data-cmd="MIRROR">🔄 Switch Mirror</button>
+  <button class="act-btn" type="button" data-cmd="EXTERNAL">🚀 External Tab</button>
+</div>
+
+<script>
+const connStatus = document.getElementById("connStatus");
+const searchForm = document.getElementById("remoteSearchForm");
+const searchInput = document.getElementById("remoteSearchInput");
+
+async function sendCmd(action, value = null) {
+  if (navigator.vibrate) navigator.vibrate(18);
+  try {
+    const r = await fetch("/api/remote-cmd", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, value })
+    });
+    const d = await r.json();
+    connStatus.textContent = d.deliveredTo > 0 ? `● TV Connected (${d.deliveredTo})` : "● Waiting for TV";
+  } catch (e) {
+    connStatus.textContent = "✕ Offline";
+  }
+}
+
+document.querySelectorAll("[data-cmd]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    sendCmd(btn.getAttribute("data-cmd"));
+  });
+});
+
+searchForm.addEventListener("submit", e => {
+  e.preventDefault();
+  const q = searchInput.value.trim();
+  if (!q) {
+    sendCmd("SEARCH");
+    return;
+  }
+  sendCmd("SEARCH_QUERY", q);
+  searchInput.blur();
+});
+</script>
+</body>
+</html>

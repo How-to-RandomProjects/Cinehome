@@ -12,7 +12,6 @@
   --surface-active: #1f1f2a;
   --border-subtle: rgba(255, 255, 255, 0.1);
   --border-hover: rgba(255, 255, 255, 0.28);
-  --border-active: #ffffff;
   --white: #ffffff;
   --text-main: #f4f4f5;
   --text-muted: #a1a1aa;
@@ -128,7 +127,7 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
 .rating-chip { color: var(--gold); font-weight: 700; display: flex; align-items: center; gap: 3px; }
 .card p, .resultCard p { font-size: 12px; color: #a1a1aa; margin: 0; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 
-/* In-Page Zero-Overflow Player Screen */
+/* Full-Screen Unsandboxed Player */
 #player {
   position: fixed; inset: 0; z-index: 500;
   width: 100vw; height: 100vh;
@@ -149,51 +148,28 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
 .player-controls-hud.active { opacity: 1; pointer-events: auto; }
 
 .hud-btn {
-  background: rgba(14, 14, 20, 0.9); border: 1.5px solid rgba(255, 255, 255, 0.22);
+  background: rgba(14, 14, 20, 0.92); border: 1.5px solid rgba(255, 255, 255, 0.25);
   color: #fff; padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
-  display: flex; align-items: center; gap: 8px; backdrop-filter: blur(12px);
-  outline: none; transition: all 0.2s;
+  display: flex; align-items: center; gap: 8px; outline: none; transition: all 0.2s;
 }
 .hud-btn:hover, .hud-btn.focused {
   background: var(--white); color: #000; border-color: #fff;
-  box-shadow: 0 0 14px rgba(255, 255, 255, 0.4);
 }
 
 #playerStreamBanner {
   position: fixed; top: 22px; left: 50%; transform: translateX(-50%);
   z-index: 535; background: rgba(18, 18, 26, 0.96); border: 1.5px solid rgba(255, 255, 255, 0.35);
   border-radius: 999px; padding: 10px 24px; color: var(--white); font-size: 13px; font-weight: 600;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.85); backdrop-filter: blur(16px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.85);
   display: none; pointer-events: none; text-align: center; white-space: nowrap;
-}
-
-/* Setup-Box Optimized Center Notifier */
-#playerCenterHelper {
-  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  z-index: 9999; background: #111118; border: 2px solid var(--white);
-  border-radius: 18px; padding: 22px 30px; text-align: center; max-width: 500px; width: 90%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.98);
-  display: none; transition: opacity 0.25s ease;
-}
-#playerCenterHelper.fadeout { opacity: 0; pointer-events: none; }
-#playerCenterHelper h3 { margin: 0 0 8px; font-size: 17px; color: var(--white); }
-#playerCenterHelper p { margin: 0 0 16px; font-size: 13px; color: var(--text-muted); line-height: 1.4; }
-.helper-btn-grid { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-.helper-action-btn {
-  background: rgba(255, 255, 255, 0.08); border: 1.5px solid var(--border-subtle);
-  color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 600;
-  cursor: pointer; transition: all 0.2s; outline: none;
-}
-.helper-action-btn:hover, .helper-action-btn.focused {
-  background: var(--white); color: #000; border-color: var(--white);
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.35);
 }
 
 #help {
   height: clamp(34px, 5vh, 44px); background: rgba(9, 9, 11, 0.92); border-top: 1px solid var(--border-subtle);
-  display: flex; align-items: center; padding: 0 clamp(20px, 3vw, 44px); font-size: 12px; color: var(--text-muted);
-  gap: 16px; position: relative; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between; padding: 0 clamp(20px, 3vw, 44px);
+  font-size: 12px; color: var(--text-muted); position: relative; z-index: 20;
 }
+.help-keys { display: flex; align-items: center; gap: 16px; }
 .key-tag { color: var(--white); background: rgba(255, 255, 255, 0.12); padding: 2px 7px; border-radius: 6px; font-weight: 700; }
 
 #searchPage { display: none; position: fixed; inset: 0; z-index: 100; padding: 20px 44px 24px; background: #09090b; flex-direction: column; overflow: hidden; }
@@ -209,12 +185,13 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   box-shadow: 0 0 16px rgba(255, 255, 255, 0.45);
 }
 
-#resultsGrid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: var(--card-height); gap: var(--row-gap) var(--rail-gap); padding: 16px 4px 50px 4px; }
+#resultsGrid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: var(--card-height); gap: var(--row-gap) var(--rail-gap); padding: 16px 4px 50px 4px; scrollbar-width: none; }
+#resultsGrid::-webkit-scrollbar { display: none; }
 
 /* Modals */
 .modal-overlay {
   display: none; position: fixed; inset: 0; z-index: 600;
-  background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(16px);
+  background: rgba(0, 0, 0, 0.88);
   align-items: center; justify-content: center;
 }
 .modal-box {
@@ -278,29 +255,27 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
 }
 .switch-input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--white); pointer-events: none; }
 
-.remote-type-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 18px 0; }
-.remote-type-card {
-  border: 1.5px solid var(--border-subtle); border-radius: 12px; padding: 18px 16px;
-  cursor: pointer; background: rgba(255,255,255,0.03); text-align: center; transition: all 0.2s;
-  outline: none; position: relative;
+/* QR Code Container */
+.qr-card {
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 10px auto 16px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
 }
-.remote-type-card.focused {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
-}
-.remote-type-card.selected {
-  border-color: var(--white) !important;
-  background: rgba(255, 255, 255, 0.12) !important;
-  box-shadow: 0 0 18px rgba(255, 255, 255, 0.35) !important;
-}
-.remote-type-card h3 { margin: 0 0 6px; font-size: 15px; color: #fff; }
-.remote-type-card p { margin: 0 0 8px 0; font-size: 12px; color: var(--text-muted); }
-.active-pill {
-  display: none; background: var(--white); color: #000;
-  font-size: 10.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px;
-  margin: 0 auto; width: fit-content; text-transform: uppercase;
-}
-.remote-type-card.selected .active-pill {
-  display: block;
+.qr-url-box {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-family: monospace;
+  font-size: 15px;
+  color: var(--mint);
+  font-weight: 700;
+  word-break: break-all;
 }
 </style>
 </head>
@@ -317,14 +292,26 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
     <button id="btnSearchNav" class="dpad-nav-item" type="button" data-col="0">🔍 Search</button>
     <button id="btnManagePreferences" class="dpad-nav-item" type="button" data-col="1">⚙ Shelves</button>
     <button id="btnManagePlayers" class="dpad-nav-item" type="button" data-col="2">🎬 Players</button>
-    <button id="btnConfigRemote" class="dpad-nav-item" type="button" data-col="3">🎮 Remote</button>
+    <button id="btnQrRemote" class="dpad-nav-item" type="button" data-col="3">📱 Phone Remote</button>
   </div>
 </header>
 
 <main id="home"></main>
 
-<div id="help"></div>
+<div id="help">
+  <div class="help-keys">
+    <span><span class="key-tag">↑ ↓</span> Shelves</span>
+    <span><span class="key-tag">← →</span> Browse</span>
+    <span><span class="key-tag">Select / 5</span> Play</span>
+    <span><span class="key-tag">3</span> Switch Mirror</span>
+    <span><span class="key-tag">7</span> External</span>
+    <span><span class="key-tag">1</span> Search</span>
+    <span><span class="key-tag">0 / Back</span> Home</span>
+  </div>
+  <div id="phoneConnBadge" style="color:var(--mint);font-weight:600;">📱 Phone Remote Ready</div>
+</div>
 
+<!-- Search View -->
 <div id="searchPage">
   <div class="searchHeader">
     <h2 id="searchTitle" style="margin:0;">Search</h2>
@@ -336,6 +323,7 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   <div class="search-grid-wrapper"><div id="resultsGrid"></div></div>
 </div>
 
+<!-- Unsandboxed Fullscreen Player -->
 <div id="player">
   <div id="playerHudBar" class="player-controls-hud">
     <button id="playerExitTrigger" class="hud-btn" type="button" data-hud-idx="0">✕ Back (0)</button>
@@ -347,17 +335,6 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
 
   <div id="playerStreamBanner"></div>
 
-  <!-- Setup-Box Safe Center Helper -->
-  <div id="playerCenterHelper">
-    <h3 id="helperPlayerTitle">Is the video playing?</h3>
-    <p id="helperPlayerDesc">If screen is black or buffering, pick an option below. Otherwise this box will close automatically in <b id="helperCountdown">6</b>s.</p>
-    <div class="helper-btn-grid">
-      <button id="btnHelperSwitch" class="helper-action-btn focused" type="button" data-help-idx="0">Switch Mirror (3)</button>
-      <button id="btnHelperExternal" class="helper-action-btn" type="button" data-help-idx="1">Open External (7)</button>
-      <button id="btnHelperExit" class="helper-action-btn" type="button" data-help-idx="2">Exit (0)</button>
-    </div>
-  </div>
-
   <iframe 
     id="playerFrame" 
     allow="autoplay; fullscreen; picture-in-picture; encrypted-media" 
@@ -365,12 +342,29 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   </iframe>
 </div>
 
+<!-- QR Code Phone Remote Modal -->
+<div id="qrRemoteModal" class="modal-overlay">
+  <div class="modal-box" style="text-align:center;">
+    <div class="modal-body" style="text-align:center;">
+      <h2>📱 Control TV From Your Phone</h2>
+      <p>Scan this QR code with your phone's camera (on the same Wi-Fi) to open the touch remote and keyboard.</p>
+      <div class="qr-card">
+        <img id="qrCodeImage" width="210" height="210" alt="Scan QR Code for Web Remote">
+      </div>
+      <div id="qrRemoteUrlText" class="qr-url-box">Loading LAN address...</div>
+    </div>
+    <div class="modal-actions-sticky" style="justify-content:center;">
+      <button id="btnCloseQrModal" class="modal-btn btn-primary" type="button">Done</button>
+    </div>
+  </div>
+</div>
+
 <!-- Player Sources Modal -->
 <div id="playerModal" class="modal-overlay">
   <div class="modal-box">
     <div class="modal-body" id="playerModalBody">
       <h2>Streaming Player Sources</h2>
-      <p>Manage your streaming sources. Add new providers by supplying both <b>Movie</b> and <b>Series / TV</b> URLs to prevent playback errors[cite: 8].</p>
+      <p>Manage your streaming sources. Add new providers by supplying both <b>Movie</b> and <b>Series / TV</b> URLs to prevent playback errors.</p>
       
       <div id="playerListContainer"></div>
 
@@ -396,7 +390,7 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   <div class="modal-box">
     <div class="modal-body">
       <h2 id="editPlayerTitle">Edit Player</h2>
-      <p>Click any mirror tag to set it as active, remove broken domains with ✕, or add backup domains (.tech, .me, .live)[cite: 8].</p>
+      <p>Click any mirror tag to set it as active, remove broken domains with ✕, or add backup domains (.tech, .me, .live).</p>
       
       <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Provider Name:</label>
       <input id="editPlayerName" class="modal-input">
@@ -429,56 +423,13 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   <div class="modal-box">
     <div class="modal-body">
       <h2>Catalog Shelf Preferences</h2>
-      <p>Personalize your home screen. Toggle or customize which categories load by default, including history shelves.</p>
+      <p>Personalize your home screen. Toggle which categories load by default, including history shelves.</p>
       <div id="shelfPreferencesList"></div>
     </div>
     <div class="modal-actions-sticky">
       <button id="btnSaveShelfPreferences" class="modal-btn btn-primary" type="button">Apply & Reload</button>
       <button id="btnResetShelfPreferences" class="modal-btn btn-danger" type="button">Reset Defaults</button>
       <button id="btnClosePreferences" class="modal-btn btn-secondary" type="button">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- Remote Type Selection & Calibration Wizard Modal -->
-<div id="remoteModal" class="modal-overlay">
-  <div class="modal-box" style="text-align:center;">
-    <div class="modal-body">
-      <h2>Remote Setup Wizard</h2>
-      
-      <div id="wizardStepTypeSelector">
-        <p>Select your remote control type before calibration:</p>
-        <div class="remote-type-selector">
-          <div id="cardTypeDpad" class="remote-type-card selected" tabindex="0">
-            <h3>📺 5-Button TV D-Pad</h3>
-            <p>Android TV, FireTV, Google TV remotes without number keys.</p>
-            <div class="active-pill">● Selected</div>
-          </div>
-          <div id="cardTypeNumpad" class="remote-type-card" tabindex="0">
-            <h3>🔢 Remote with Numpad</h3>
-            <p>Full TV / keyboard controller with 0-9 digits.</p>
-            <div class="active-pill">● Selected</div>
-          </div>
-        </div>
-      </div>
-
-      <div id="wizardStepKeyCalibration" style="display:none;">
-        <p id="wizardCalibIntro">Press each button twice to confirm.</p>
-        <div>
-          <div id="cfgActionTag" style="display:inline-block;padding:8px 18px;border:1.5px solid #fff;border-radius:10px;font-weight:800;margin-bottom:14px;">ACTION</div>
-          <div id="cfgSubText" style="min-height:44px;color:#fff;font-size:15px;">Press the button on your remote...</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal-actions-sticky" id="wizardActionsSelector" style="justify-content:center;">
-      <button id="btnStartCalibrateWizard" class="modal-btn btn-primary" type="button">Next: Calibrate Buttons</button>
-      <button id="btnCancelRemoteType" class="modal-btn btn-secondary" type="button">Cancel</button>
-    </div>
-
-    <div class="modal-actions-sticky" id="wizardActionsCalibrating" style="justify-content:center;display:none;">
-      <button id="btnResetDefaultKeys" class="modal-btn btn-danger" type="button">Reset Defaults</button>
-      <button id="btnCancelConfig" class="modal-btn btn-secondary" type="button">Cancel</button>
     </div>
   </div>
 </div>
@@ -544,7 +495,7 @@ let playerSources = [
 let activeSourceIdx = 0;
 let editingPlayerIdx = -1;
 
-const DEFAULT_KEY_MAP = {
+const KEY_MAP = {
   UP: ["2", "ArrowUp", "Up", "Numpad8"],
   DOWN: ["8", "ArrowDown", "Down", "Numpad2"],
   LEFT: ["4", "ArrowLeft", "Left", "Numpad4"],
@@ -556,16 +507,10 @@ const DEFAULT_KEY_MAP = {
   EXTERNAL: ["7", "Numpad7"]
 };
 
-let activeKeyMap = { ...DEFAULT_KEY_MAP };
-let remoteDeviceType = localStorage.getItem("cinehome_remote_type") || null;
-
-function loadSavedKeyProfile() {
-  try {
-    const saved = localStorage.getItem("cinehome_remote_config");
-    if (saved) activeKeyMap = JSON.parse(saved);
-  } catch(e) {}
+function matchesAction(e, actionName) {
+  const list = KEY_MAP[actionName] || [];
+  return list.includes(e.key) || list.includes(e.code) || list.includes(String(e.keyCode));
 }
-loadSavedKeyProfile();
 
 function normalizePlayer(p) {
   if (!p) return null;
@@ -821,7 +766,35 @@ document.getElementById("btnClosePlayerModal").onclick = () => {
   activeModalId = null;
 };
 
-/* Shelf Preferences Rendering & D-Pad Setup */
+/* QR Phone Remote Modal */
+async function openQrRemoteModal() {
+  const modal = document.getElementById("qrRemoteModal");
+  const img = document.getElementById("qrCodeImage");
+  const urlText = document.getElementById("qrRemoteUrlText");
+
+  modal.style.display = "flex";
+  initModalDpad("qrRemoteModal");
+
+  try {
+    const r = await fetch("/api/network-info");
+    const info = await r.json();
+    const targetUrl = info.remoteUrl || `${window.location.origin}/remote`;
+    urlText.textContent = targetUrl;
+    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=4&data=${encodeURIComponent(targetUrl)}`;
+  } catch (e) {
+    const fallbackUrl = `${window.location.origin}/remote`;
+    urlText.textContent = fallbackUrl;
+    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=4&data=${encodeURIComponent(fallbackUrl)}`;
+  }
+}
+
+document.getElementById("btnQrRemote").onclick = openQrRemoteModal;
+document.getElementById("btnCloseQrModal").onclick = () => {
+  document.getElementById("qrRemoteModal").style.display = "none";
+  activeModalId = null;
+};
+
+/* Shelf Preferences */
 function renderShelfPreferences() {
   const list = document.getElementById("shelfPreferencesList");
   list.innerHTML = "";
@@ -871,68 +844,7 @@ document.getElementById("btnClosePreferences").onclick = () => {
   activeModalId = null;
 };
 
-function formatKeyLabel(keyString) {
-  if (!keyString) return "";
-  if (keyString === "ArrowUp" || keyString === "Up") return "↑";
-  if (keyString === "ArrowDown" || keyString === "Down") return "↓";
-  if (keyString === "ArrowLeft" || keyString === "Left") return "←";
-  if (keyString === "ArrowRight" || keyString === "Right") return "→";
-  if (keyString === "Enter" || keyString === "Select") return "Select";
-  if (keyString === "Backspace" || keyString === "Escape") return "Back";
-  if (keyString.startsWith("Digit")) return keyString.replace("Digit", "");
-  if (keyString.startsWith("Key")) return keyString.replace("Key", "");
-  if (keyString.startsWith("Numpad")) return keyString.replace("Numpad", "Num");
-  return keyString.toUpperCase();
-}
-
-function getBestKeyLabel(actionName) {
-  const keys = activeKeyMap[actionName] || [];
-  if (!keys.length) return "";
-  const primary = keys[0];
-  const secondary = keys[1] && keys[1] !== primary ? keys[1] : null;
-  if (secondary && (primary === "2" || primary === "8" || primary === "4" || primary === "6")) {
-    return `${formatKeyLabel(secondary)} / ${primary}`;
-  }
-  return formatKeyLabel(primary);
-}
-
-function updateBottomBarLegend() {
-  const helpEl = document.getElementById("help");
-  if (!helpEl) return;
-  if (remoteDeviceType === "dpad") {
-    helpEl.innerHTML = `
-      <span><span class="key-tag">↑ ↓</span> Shelves</span>
-      <span><span class="key-tag">← →</span> Browse</span>
-      <span><span class="key-tag">Select</span> Play</span>
-      <span><span class="key-tag">Back</span> Home / Exit</span>
-      <span><span class="key-tag">↑ from top</span> Menu</span>
-    `;
-  } else {
-    helpEl.innerHTML = `
-      <span><span class="key-tag">${getBestKeyLabel("UP")} ${getBestKeyLabel("DOWN")}</span> Shelves</span>
-      <span><span class="key-tag">${getBestKeyLabel("LEFT")} ${getBestKeyLabel("RIGHT")}</span> Browse</span>
-      <span><span class="key-tag">${getBestKeyLabel("SELECT")}</span> Play</span>
-      <span><span class="key-tag">${getBestKeyLabel("MIRROR")}</span> Switch (3)</span>
-      <span><span class="key-tag">${getBestKeyLabel("EXTERNAL")}</span> External (7)</span>
-      <span><span class="key-tag">${getBestKeyLabel("SEARCH")}</span> Search (1)</span>
-      <span><span class="key-tag">${getBestKeyLabel("BACK")}</span> Back (0)</span>
-    `;
-  }
-}
-updateBottomBarLegend();
-
-async function saveKeyProfileToServer(newProfile) {
-  try {
-    localStorage.setItem("cinehome_remote_config", JSON.stringify(newProfile));
-  } catch(e) {}
-  updateBottomBarLegend();
-  fetch("/api/save-remote-config", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ profile: newProfile })
-  }).catch(() => {});
-}
-
+/* Audio Feedback */
 let audioCtx = null;
 function getAudioContext() {
   if (!audioCtx) {
@@ -1017,19 +929,6 @@ const btnSwitchPlayerHud = document.getElementById("btnSwitchPlayerHud");
 const btnLaunchExternalHud = document.getElementById("btnLaunchExternalHud");
 const playerStreamBanner = document.getElementById("playerStreamBanner");
 
-const playerCenterHelper = document.getElementById("playerCenterHelper");
-const btnHelperSwitch = document.getElementById("btnHelperSwitch");
-const btnHelperExternal = document.getElementById("btnHelperExternal");
-const btnHelperExit = document.getElementById("btnHelperExit");
-const helperCountdown = document.getElementById("helperCountdown");
-
-const remoteModal = document.getElementById("remoteModal");
-const btnConfigRemote = document.getElementById("btnConfigRemote");
-const btnResetDefaultKeys = document.getElementById("btnResetDefaultKeys");
-const btnCancelConfig = document.getElementById("btnCancelConfig");
-const cfgActionTag = document.getElementById("cfgActionTag");
-const cfgSubText = document.getElementById("cfgSubText");
-
 let shelves = [];
 let activeShelf = 0;
 let searchItems = [];
@@ -1044,44 +943,28 @@ let hudTimeout = null;
 let streamBannerTimeout = null;
 let playerActive = false;
 
-/* Setup-Box Reliable Center Check State */
-let centerCheckGraceTimer = null;
-let centerCloseTimeout = null;
-
-/* D-Pad Focus State in Player Modes: "none", "hud", "helper" */
 let playerDpadMode = "none";
 let playerHudCol = 0;
-let playerHelpCol = 0;
-
 const playerHudButtons = [playerExitTrigger, btnSwitchPlayerHud, btnLaunchExternalHud];
-const playerHelperButtons = [btnHelperSwitch, btnHelperExternal, btnHelperExit];
 
-/* Navigation state inside Search View */
 let searchNavPosition = "input";
-
-/* Pure 5-Button D-Pad Focus States on Home */
 let inHeaderNav = false;
 let headerNavCol = 0;
 const headerNavButtons = [
   document.getElementById("btnSearchNav"),
   document.getElementById("btnManagePreferences"),
   document.getElementById("btnManagePlayers"),
-  document.getElementById("btnConfigRemote")
+  document.getElementById("btnQrRemote")
 ];
 
-/* Active Modal Tracking & Focus List */
 let activeModalId = null;
 let modalFocusIndex = 0;
 
 function getModalFocusableElements(modalId) {
   const modal = document.getElementById(modalId);
   if (!modal) return [];
-  if (modalId === "remoteModal") {
-    if (wizardStepTypeSelector.style.display !== "none") {
-      return [cardTypeDpad, cardTypeNumpad, document.getElementById("btnStartCalibrateWizard"), document.getElementById("btnCancelRemoteType")];
-    } else {
-      return [btnResetDefaultKeys, btnCancelConfig];
-    }
+  if (modalId === "qrRemoteModal") {
+    return [document.getElementById("btnCloseQrModal")];
   }
   if (modalId === "preferencesModal") {
     const items = [...modal.querySelectorAll(".shelf-toggle-item")];
@@ -1144,27 +1027,6 @@ function handleModalDpad(dir, select = false) {
     return;
   }
 
-  if (activeModalId === "remoteModal" && wizardStepTypeSelector.style.display !== "none") {
-    if (dir === "left" && modalFocusIndex === 1) {
-      modalFocusIndex = 0;
-      cardTypeDpad.click();
-    } else if (dir === "right" && modalFocusIndex === 0) {
-      modalFocusIndex = 1;
-      cardTypeNumpad.click();
-    } else if (dir === "down" && (modalFocusIndex === 0 || modalFocusIndex === 1)) {
-      modalFocusIndex = 2;
-    } else if (dir === "up" && modalFocusIndex >= 2) {
-      modalFocusIndex = (remoteDeviceType === "dpad") ? 0 : 1;
-    } else if (dir === "right" && modalFocusIndex === 2) {
-      modalFocusIndex = 3;
-    } else if (dir === "left" && modalFocusIndex === 3) {
-      modalFocusIndex = 2;
-    }
-    playTickSound();
-    updateModalDpadUI();
-    return;
-  }
-
   if (dir === "up" || dir === "left") {
     modalFocusIndex = Math.max(0, modalFocusIndex - 1);
     playTickSound();
@@ -1174,182 +1036,6 @@ function handleModalDpad(dir, select = false) {
     playTickSound();
     updateModalDpadUI();
   }
-}
-
-let isConfiguringRemote = false;
-let wizardStepIndex = 0;
-let wizardReadAttempts = 0;
-let wizardFirstCandidate = null;
-let newConfigDraft = {};
-
-const DPAD_5_BUTTON_STEPS = [
-  { action: "UP", label: "MOVE UP" },
-  { action: "DOWN", label: "MOVE DOWN" },
-  { action: "LEFT", label: "MOVE LEFT" },
-  { action: "RIGHT", label: "MOVE RIGHT" },
-  { action: "SELECT", label: "SELECT / PLAY" },
-  { action: "BACK", label: "BACK / EXIT" }
-];
-
-const FULL_NUMPAD_STEPS = [
-  { action: "UP", label: "MOVE UP" },
-  { action: "DOWN", label: "MOVE DOWN" },
-  { action: "LEFT", label: "MOVE LEFT" },
-  { action: "RIGHT", label: "MOVE RIGHT" },
-  { action: "SELECT", label: "SELECT / PLAY" },
-  { action: "BACK", label: "BACK / EXIT" },
-  { action: "SEARCH", label: "OPEN SEARCH" },
-  { action: "MIRROR", label: "SWITCH PLAYER MIRROR" },
-  { action: "EXTERNAL", label: "LAUNCH EXTERNAL" }
-];
-
-let activeWizardSteps = DPAD_5_BUTTON_STEPS;
-
-const cardTypeDpad = document.getElementById("cardTypeDpad");
-const cardTypeNumpad = document.getElementById("cardTypeNumpad");
-const wizardStepTypeSelector = document.getElementById("wizardStepTypeSelector");
-const wizardStepKeyCalibration = document.getElementById("wizardStepKeyCalibration");
-const wizardActionsSelector = document.getElementById("wizardActionsSelector");
-const wizardActionsCalibrating = document.getElementById("wizardActionsCalibrating");
-
-cardTypeDpad.onclick = () => {
-  cardTypeDpad.classList.add("selected");
-  cardTypeNumpad.classList.remove("selected");
-  remoteDeviceType = "dpad";
-};
-cardTypeNumpad.onclick = () => {
-  cardTypeNumpad.classList.add("selected");
-  cardTypeDpad.classList.remove("selected");
-  remoteDeviceType = "numpad";
-};
-
-document.getElementById("btnStartCalibrateWizard").onclick = () => {
-  localStorage.setItem("cinehome_remote_type", remoteDeviceType);
-  updateBottomBarLegend();
-  wizardStepTypeSelector.style.display = "none";
-  wizardActionsSelector.style.display = "none";
-  wizardStepKeyCalibration.style.display = "block";
-  wizardActionsCalibrating.style.display = "flex";
-  activeWizardSteps = (remoteDeviceType === "dpad") ? DPAD_5_BUTTON_STEPS : FULL_NUMPAD_STEPS;
-  startKeyCalibration();
-};
-
-document.getElementById("btnCancelRemoteType").onclick = () => {
-  stopRemoteConfig();
-};
-
-function isKeyAlreadyAssigned(keyId) {
-  for (const [action, keys] of Object.entries(newConfigDraft)) {
-    if (keys.includes(keyId)) return action;
-  }
-  return null;
-}
-
-function promptWizardStep() {
-  const step = activeWizardSteps[wizardStepIndex];
-  cfgActionTag.textContent = step.label;
-  if (wizardReadAttempts === 0) {
-    cfgSubText.innerHTML = `Press the button for <b>${step.label}</b> on your remote.`;
-  } else {
-    cfgSubText.innerHTML = `<span style="color:var(--gold);">Confirmation:</span> Press the <b>SAME button</b> again.`;
-  }
-}
-
-function startKeyCalibration() {
-  isConfiguringRemote = true;
-  wizardStepIndex = 0;
-  wizardReadAttempts = 0;
-  wizardFirstCandidate = null;
-  newConfigDraft = {};
-  promptWizardStep();
-}
-
-function startRemoteConfig() {
-  remoteModal.style.display = "flex";
-  wizardStepTypeSelector.style.display = "block";
-  wizardActionsSelector.style.display = "flex";
-  wizardStepKeyCalibration.style.display = "none";
-  wizardActionsCalibrating.style.display = "none";
-  if (remoteDeviceType === "dpad" || !remoteDeviceType) {
-    cardTypeDpad.classList.add("selected");
-    cardTypeNumpad.classList.remove("selected");
-  } else {
-    cardTypeNumpad.classList.add("selected");
-    cardTypeDpad.classList.remove("selected");
-  }
-  initModalDpad("remoteModal");
-}
-
-function stopRemoteConfig() {
-  isConfiguringRemote = false;
-  remoteModal.style.display = "none";
-  activeModalId = null;
-}
-
-function handleWizardKeyInput(e) {
-  e.preventDefault();
-  e.stopPropagation();
-
-  const keyId = e.code || e.key;
-  const step = activeWizardSteps[wizardStepIndex];
-
-  const existingAction = isKeyAlreadyAssigned(keyId);
-  if (existingAction && existingAction !== step.action) {
-    playTickSound();
-    cfgSubText.innerHTML = `<span style="color:#f87171;">Error: Key [${keyId}] is already used for ${existingAction}. Press a different key.</span>`;
-    return;
-  }
-
-  if (wizardReadAttempts === 0) {
-    playTickSound();
-    wizardFirstCandidate = { key: e.key, code: e.code };
-    wizardReadAttempts = 1;
-    promptWizardStep();
-    return;
-  }
-
-  if (wizardReadAttempts === 1) {
-    if (wizardFirstCandidate.code === e.code || wizardFirstCandidate.key === e.key) {
-      playSelectSound();
-      const keysForAction = [...new Set([e.key, e.code].filter(Boolean))];
-      newConfigDraft[step.action] = keysForAction;
-
-      wizardStepIndex++;
-      wizardReadAttempts = 0;
-      wizardFirstCandidate = null;
-
-      if (wizardStepIndex < activeWizardSteps.length) {
-        promptWizardStep();
-      } else {
-        activeKeyMap = { ...activeKeyMap, ...newConfigDraft };
-        saveKeyProfileToServer(activeKeyMap);
-        cfgActionTag.textContent = "SUCCESS!";
-        cfgSubText.innerHTML = `<span style="color:var(--white);">Remote profile calibrated and saved!</span>`;
-        setTimeout(() => {
-          stopRemoteConfig();
-        }, 1200);
-      }
-    } else {
-      playTickSound();
-      wizardReadAttempts = 0;
-      wizardFirstCandidate = null;
-      cfgSubText.innerHTML = `<span style="color:#f87171;">Keys didn't match! Let's retry: Press the button for <b>${step.label}</b>.</span>`;
-    }
-  }
-}
-
-btnConfigRemote.addEventListener("click", startRemoteConfig);
-btnCancelConfig.addEventListener("click", stopRemoteConfig);
-btnResetDefaultKeys.addEventListener("click", () => {
-  activeKeyMap = { ...DEFAULT_KEY_MAP };
-  saveKeyProfileToServer(activeKeyMap);
-  playSelectSound();
-  stopRemoteConfig();
-});
-
-function matchesAction(e, actionName) {
-  const list = activeKeyMap[actionName] || [];
-  return list.includes(e.key) || list.includes(e.code) || list.includes(String(e.keyCode));
 }
 
 function getRecentMedia() {
@@ -1792,70 +1478,7 @@ function updatePlayerDpadFocus() {
   playerHudButtons.forEach((btn, i) => {
     btn.classList.toggle("focused", playerDpadMode === "hud" && i === playerHudCol);
   });
-  playerHelperButtons.forEach((btn, i) => {
-    btn.classList.toggle("focused", playerDpadMode === "helper" && i === playerHelpCol);
-  });
 }
-
-/* Setup-Box Reliable Center Check: Triggers after 4.5s and cleans up automatically */
-function triggerCenterPlaybackCheck() {
-  if (centerCheckGraceTimer) clearTimeout(centerCheckGraceTimer);
-  if (centerCloseTimeout) clearTimeout(centerCloseTimeout);
-
-  dismissCenterHelper();
-
-  centerCheckGraceTimer = setTimeout(() => {
-    if (!playerActive) return;
-
-    const activePlayer = playerSources[activeSourceIdx];
-    const domains = Array.isArray(activePlayer.domains) && activePlayer.domains.length ? activePlayer.domains : [activePlayer.name];
-    const activeDomain = domains[activePlayer.activeDomainIdx || 0] || domains[0];
-
-    document.getElementById("helperPlayerTitle").textContent = `Is the video playing? (${activePlayer.name} · ${activeDomain})`;
-    playerCenterHelper.classList.remove("fadeout");
-    playerCenterHelper.style.display = "block";
-
-    playerDpadMode = "helper";
-    playerHelpCol = 0;
-    updatePlayerDpadFocus();
-
-    // Reclaim top window focus so setup boxes do not swallow D-Pad keys
-    window.focus();
-
-    centerCloseTimeout = setTimeout(() => {
-      dismissCenterHelper();
-    }, 6000);
-  }, 4500);
-}
-
-function dismissCenterHelper() {
-  if (centerCloseTimeout) clearTimeout(centerCloseTimeout);
-  if (playerCenterHelper.style.display !== "none") {
-    playerCenterHelper.classList.add("fadeout");
-    setTimeout(() => {
-      playerCenterHelper.style.display = "none";
-      playerCenterHelper.classList.remove("fadeout");
-      if (playerDpadMode === "helper") {
-        playerDpadMode = "none";
-        updatePlayerDpadFocus();
-      }
-    }, 250);
-  }
-  window.focus();
-}
-
-btnHelperSwitch.onclick = () => {
-  dismissCenterHelper();
-  toggleUniversalNext();
-};
-btnHelperExternal.onclick = () => {
-  dismissCenterHelper();
-  launchExternal();
-};
-btnHelperExit.onclick = () => {
-  dismissCenterHelper();
-  closePlayer();
-};
 
 function loadPlayerSource() {
   if (!currentItem) return;
@@ -1864,13 +1487,11 @@ function loadPlayerSource() {
 
   playerFrame.src = directUrl;
   triggerHudActivity();
-  triggerCenterPlaybackCheck();
 
   const domains = Array.isArray(activePlayer.domains) && activePlayer.domains.length ? activePlayer.domains : [activePlayer.name];
   const activeDomain = domains[activePlayer.activeDomainIdx || 0] || domains[0];
 
   showStreamBanner(`▶ <b>${activePlayer.name}</b> (${activeDomain}) &nbsp;|&nbsp; <span style="color:#a1a1aa;">Mirror: <b>3</b> &bull; External: <b>7</b></span>`);
-  window.focus();
 }
 
 function launchExternal() {
@@ -1908,14 +1529,10 @@ function playMedia(m) {
   playerActive = true;
   player.style.display = "block";
   loadPlayerSource();
-  window.focus();
 }
 
 function closePlayer() {
   playerActive = false;
-  if (centerCheckGraceTimer) clearTimeout(centerCheckGraceTimer);
-  if (centerCloseTimeout) clearTimeout(centerCloseTimeout);
-  playerCenterHelper.style.display = "none";
   if (hudTimeout) clearTimeout(hudTimeout);
   if (streamBannerTimeout) clearTimeout(streamBannerTimeout);
   playerStreamBanner.style.display = "none";
@@ -1925,7 +1542,6 @@ function closePlayer() {
   playerFrame.src = "about:blank";
   player.style.display = "none";
   currentItem = null;
-  window.focus();
 }
 
 playerExitTrigger.addEventListener("click", closePlayer);
@@ -2170,16 +1786,9 @@ function moveSearch(dir) {
 
 searchButton.addEventListener("click", () => runSearch());
 
-/* Global Keydown Listener With Flawless Modal Trapping & Input Escape */
-document.addEventListener("keydown", e => {
-  if (isConfiguringRemote) {
-    handleWizardKeyInput(e);
-    return;
-  }
-
-  // 1. Global BACK / Key 0 (Instantly exits modals, player, or search)
-  if (matchesAction(e, "BACK")) {
-    e.preventDefault();
+/* Unified Command Executor (Shared by Keyboard & Phone Web Remote) */
+function executeCommand(cmd, payload = null) {
+  if (cmd === "BACK") {
     if (activeModalId) {
       const modal = document.getElementById(activeModalId);
       if (modal) modal.style.display = "none";
@@ -2198,115 +1807,47 @@ document.addEventListener("keydown", e => {
     return;
   }
 
-  // 2. Traps Navigation Inside Open Modals Without Getting Stuck In Text Inputs
   if (activeModalId) {
-    if (document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA")) {
-      if (matchesAction(e, "DOWN") || e.key === "ArrowDown" || e.key === "Enter") {
-        e.preventDefault();
-        document.activeElement.blur();
-        handleModalDpad("down");
-        return;
-      }
-      if (matchesAction(e, "UP") || e.key === "ArrowUp") {
-        e.preventDefault();
-        document.activeElement.blur();
-        handleModalDpad("up");
-        return;
-      }
-      if (e.key === "Escape") {
-        document.activeElement.blur();
-      }
-      return;
-    }
-
-    e.preventDefault();
-    if (matchesAction(e, "UP")) handleModalDpad("up");
-    else if (matchesAction(e, "DOWN")) handleModalDpad("down");
-    else if (matchesAction(e, "LEFT")) handleModalDpad("left");
-    else if (matchesAction(e, "RIGHT")) handleModalDpad("right");
-    else if (matchesAction(e, "SELECT")) handleModalDpad(null, true);
+    if (cmd === "UP") handleModalDpad("up");
+    else if (cmd === "DOWN") handleModalDpad("down");
+    else if (cmd === "LEFT") handleModalDpad("left");
+    else if (cmd === "RIGHT") handleModalDpad("right");
+    else if (cmd === "SELECT") handleModalDpad(null, true);
     return;
   }
 
-  // 3. In-Player Controls & D-Pad Navigation
   if (playerActive || player.style.display === "block") {
     triggerHudActivity();
-
-    if (playerCenterHelper.style.display !== "none") {
-      if (matchesAction(e, "LEFT")) {
-        e.preventDefault();
-        playerHelpCol = Math.max(0, playerHelpCol - 1);
-        playTickSound();
-        updatePlayerDpadFocus();
-        return;
-      }
-      if (matchesAction(e, "RIGHT")) {
-        e.preventDefault();
-        playerHelpCol = Math.min(playerHelperButtons.length - 1, playerHelpCol + 1);
-        playTickSound();
-        updatePlayerDpadFocus();
-        return;
-      }
-      if (matchesAction(e, "SELECT")) {
-        e.preventDefault();
-        playSelectSound();
-        playerHelperButtons[playerHelpCol].click();
-        return;
-      }
-      if (matchesAction(e, "DOWN") || matchesAction(e, "UP")) {
-        e.preventDefault();
-        dismissCenterHelper();
-        return;
-      }
-    }
-
-    if (matchesAction(e, "EXTERNAL")) {
-      e.preventDefault();
-      dismissCenterHelper();
-      launchExternal();
-      return;
-    }
-    if (matchesAction(e, "MIRROR")) { 
-      e.preventDefault(); 
-      dismissCenterHelper();
-      toggleUniversalNext(); 
-      return; 
-    }
-
-    if (matchesAction(e, "UP")) {
-      e.preventDefault();
+    if (cmd === "EXTERNAL") { launchExternal(); return; }
+    if (cmd === "MIRROR") { toggleUniversalNext(); return; }
+    if (cmd === "UP") {
       playerDpadMode = "hud";
       playerHudBar.classList.add("active");
       updatePlayerDpadFocus();
       playTickSound();
       return;
     }
-
     if (playerDpadMode === "hud") {
-      if (matchesAction(e, "DOWN")) {
-        e.preventDefault();
+      if (cmd === "DOWN") {
         playerDpadMode = "none";
         playerHudBar.classList.remove("active");
         updatePlayerDpadFocus();
         playTickSound();
         return;
       }
-      if (matchesAction(e, "LEFT")) {
-        e.preventDefault();
+      if (cmd === "LEFT") {
         playerHudCol = Math.max(0, playerHudCol - 1);
         updatePlayerDpadFocus();
         playTickSound();
         return;
       }
-      if (matchesAction(e, "RIGHT")) {
-        e.preventDefault();
+      if (cmd === "RIGHT") {
         playerHudCol = Math.min(playerHudButtons.length - 1, playerHudCol + 1);
         updatePlayerDpadFocus();
         playTickSound();
         return;
       }
-      if (matchesAction(e, "SELECT")) {
-        e.preventDefault();
+      if (cmd === "SELECT") {
         playSelectSound();
         playerHudButtons[playerHudCol].click();
         return;
@@ -2315,96 +1856,158 @@ document.addEventListener("keydown", e => {
     return;
   }
 
-  // 4. Search Screen Navigation
-  if (searchOpen) {
-    if (document.activeElement === searchInput) {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        runSearch();
-        searchNavPosition = "grid";
-        searchInput.blur();
-        updateSearchNavUI();
-        updateSearchSelection();
-        return;
-      }
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        moveSearch("down");
-        return;
-      }
-      if (e.key === "ArrowRight" && searchInput.selectionStart === searchInput.value.length) {
-        e.preventDefault();
-        moveSearch("right");
-        return;
-      }
-      return;
-    }
+  if (cmd === "SEARCH_QUERY" && payload) {
+    openSearch();
+    searchInput.value = payload;
+    searchNavPosition = "grid";
+    searchInput.blur();
+    updateSearchNavUI();
+    runSearch();
+    return;
+  }
 
+  if (searchOpen) {
+    if (cmd === "SEARCH") { searchInput.focus(); searchNavPosition = "input"; updateSearchNavUI(); return; }
     if (searchNavPosition !== "grid") {
-      if (matchesAction(e, "SELECT")) {
-        e.preventDefault();
+      if (cmd === "SELECT") {
         playSelectSound();
         if (searchNavPosition === "input") searchInput.focus();
         else if (searchNavPosition === "searchBtn") runSearch();
         else if (searchNavPosition === "backBtn") goHome();
         return;
       }
-      if (matchesAction(e, "LEFT")) { e.preventDefault(); moveSearch("left"); return; }
-      if (matchesAction(e, "RIGHT")) { e.preventDefault(); moveSearch("right"); return; }
-      if (matchesAction(e, "DOWN")) { e.preventDefault(); moveSearch("down"); return; }
+      if (cmd === "LEFT") { moveSearch("left"); return; }
+      if (cmd === "RIGHT") { moveSearch("right"); return; }
+      if (cmd === "DOWN") { moveSearch("down"); return; }
       return;
     }
-
-    if (matchesAction(e, "SEARCH")) { e.preventDefault(); searchInput.focus(); searchNavPosition = "input"; updateSearchNavUI(); return; }
-    if (matchesAction(e, "SELECT")) {
-      e.preventDefault();
+    if (cmd === "SELECT") {
       if (searchItems[searchIndex]) playMedia(searchItems[searchIndex]);
       return;
     }
-    if (matchesAction(e, "UP")) { e.preventDefault(); moveSearch("up"); return; }
-    if (matchesAction(e, "DOWN")) { e.preventDefault(); moveSearch("down"); return; }
-    if (matchesAction(e, "LEFT")) { e.preventDefault(); moveSearch("left"); return; }
-    if (matchesAction(e, "RIGHT")) { e.preventDefault(); moveSearch("right"); return; }
+    if (cmd === "UP") { moveSearch("up"); return; }
+    if (cmd === "DOWN") { moveSearch("down"); return; }
+    if (cmd === "LEFT") { moveSearch("left"); return; }
+    if (cmd === "RIGHT") { moveSearch("right"); return; }
     return;
   }
 
-  // 5. Header Bar D-Pad Focus Selection
   if (inHeaderNav) {
-    if (matchesAction(e, "SELECT")) {
-      e.preventDefault();
+    if (cmd === "SELECT") {
       playSelectSound();
       headerNavButtons[headerNavCol].click();
       return;
     }
-    if (matchesAction(e, "LEFT")) { e.preventDefault(); moveHorizontal(-1); return; }
-    if (matchesAction(e, "RIGHT")) { e.preventDefault(); moveHorizontal(1); return; }
-    if (matchesAction(e, "DOWN")) { e.preventDefault(); moveVertical(1); return; }
+    if (cmd === "LEFT") { moveHorizontal(-1); return; }
+    if (cmd === "RIGHT") { moveHorizontal(1); return; }
+    if (cmd === "DOWN") { moveVertical(1); return; }
     return;
   }
 
-  // 6. Standard Home Screen Card Navigation
-  if (matchesAction(e, "SEARCH")) { e.preventDefault(); openSearch(); }
-  else if (matchesAction(e, "UP")) { e.preventDefault(); moveVertical(-1); }
-  else if (matchesAction(e, "DOWN")) { e.preventDefault(); moveVertical(1); }
-  else if (matchesAction(e, "LEFT")) { e.preventDefault(); moveHorizontal(-1); }
-  else if (matchesAction(e, "RIGHT")) { e.preventDefault(); moveHorizontal(1); }
-  else if (matchesAction(e, "SELECT")) {
-    e.preventDefault();
+  if (cmd === "SEARCH") openSearch();
+  else if (cmd === "UP") moveVertical(-1);
+  else if (cmd === "DOWN") moveVertical(1);
+  else if (cmd === "LEFT") moveHorizontal(-1);
+  else if (cmd === "RIGHT") moveHorizontal(1);
+  else if (cmd === "SELECT") {
     const s = shelves[activeShelf];
     if (s && s.items[s.selectedIndex]) playMedia(s.items[s.selectedIndex]);
   }
-});
-
-/* First-Run Boot Check: Auto-Launches Remote Setup for New Logins */
-function checkFirstRunRemoteSetup() {
-  if (!localStorage.getItem("cinehome_remote_type")) {
-    startRemoteConfig();
-  }
 }
+
+/* Real-Time Phone Web Remote SSE Listener */
+function initRemoteEventStream() {
+  const badge = document.getElementById("phoneConnBadge");
+  try {
+    const evtSource = new EventSource("/api/remote-events");
+    evtSource.onopen = () => {
+      if (badge) badge.textContent = "📱 Phone Remote Connected";
+    };
+    evtSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data && data.action) {
+          executeCommand(data.action, data.value);
+        }
+      } catch (_) {}
+    };
+    evtSource.onerror = () => {
+      if (badge) badge.textContent = "📱 Phone Remote Ready";
+    };
+  } catch (_) {}
+}
+
+/* Physical Keyboard / Remote Key Listener */
+document.addEventListener("keydown", e => {
+  if (matchesAction(e, "BACK")) {
+    e.preventDefault();
+    executeCommand("BACK");
+    return;
+  }
+
+  if (activeModalId) {
+    if (document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA")) {
+      if (matchesAction(e, "DOWN") || e.key === "ArrowDown" || e.key === "Enter") {
+        e.preventDefault();
+        document.activeElement.blur();
+        executeCommand("DOWN");
+        return;
+      }
+      if (matchesAction(e, "UP") || e.key === "ArrowUp") {
+        e.preventDefault();
+        document.activeElement.blur();
+        executeCommand("UP");
+        return;
+      }
+      if (e.key === "Escape") document.activeElement.blur();
+      return;
+    }
+
+    e.preventDefault();
+    if (matchesAction(e, "UP")) executeCommand("UP");
+    else if (matchesAction(e, "DOWN")) executeCommand("DOWN");
+    else if (matchesAction(e, "LEFT")) executeCommand("LEFT");
+    else if (matchesAction(e, "RIGHT")) executeCommand("RIGHT");
+    else if (matchesAction(e, "SELECT")) executeCommand("SELECT");
+    return;
+  }
+
+  if (searchOpen && document.activeElement === searchInput) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      runSearch();
+      searchNavPosition = "grid";
+      searchInput.blur();
+      updateSearchNavUI();
+      updateSearchSelection();
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      moveSearch("down");
+      return;
+    }
+    if (e.key === "ArrowRight" && searchInput.selectionStart === searchInput.value.length) {
+      e.preventDefault();
+      moveSearch("right");
+      return;
+    }
+    return;
+  }
+
+  if (matchesAction(e, "EXTERNAL")) { e.preventDefault(); executeCommand("EXTERNAL"); }
+  else if (matchesAction(e, "MIRROR")) { e.preventDefault(); executeCommand("MIRROR"); }
+  else if (matchesAction(e, "SEARCH")) { e.preventDefault(); executeCommand("SEARCH"); }
+  else if (matchesAction(e, "UP")) { e.preventDefault(); executeCommand("UP"); }
+  else if (matchesAction(e, "DOWN")) { e.preventDefault(); executeCommand("DOWN"); }
+  else if (matchesAction(e, "LEFT")) { e.preventDefault(); executeCommand("LEFT"); }
+  else if (matchesAction(e, "RIGHT")) { e.preventDefault(); executeCommand("RIGHT"); }
+  else if (matchesAction(e, "SELECT")) { e.preventDefault(); executeCommand("SELECT"); }
+});
 
 syncCustomPlayers();
 loadHome();
-checkFirstRunRemoteSetup();
+initRemoteEventStream();
 </script>
 </body>
 </html>
