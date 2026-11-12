@@ -364,15 +364,15 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
       <label class="modal-label">1. TMDB v3 API Key (Required if not set on server):</label>
       <input id="setupTmdbKeyInput" class="modal-input" placeholder="Enter your TMDB v3 API key">
 
-      <label class="modal-label">2. Movie Embed URL (e.g. <code>https://cinemaos.tech/player/1368337</code>):</label>
+      <label class="modal-label">2. Movie Embed URL (Optional — e.g. <code>https://cinemaos.tech/player/1368337</code>):</label>
       <input id="setupMovieEmbedInput" class="modal-input" placeholder="https://cinemaos.tech/player/1368337">
 
-      <label class="modal-label">3. TV Show Embed URL (e.g. <code>https://cinemaos.tech/player/213375/1/2</code>):</label>
+      <label class="modal-label">3. TV Show Embed URL (Optional — e.g. <code>https://cinemaos.tech/player/213375/1/2</code>):</label>
       <input id="setupTvEmbedInput" class="modal-input" placeholder="https://cinemaos.tech/player/213375/1/2">
 
-      <label class="modal-label">4. Direct External Browser Movie URL (Optional — used when pressing 7 / Open External):</label>
-      <input id="setupExternalMovieInput" class="modal-input" placeholder="e.g. https://cinemaos.me/watch/movie/1368337">
-      <input id="setupExternalTvInput" class="modal-input" placeholder="e.g. https://cinemaos.me/watch/tv/213375?season=1&episode=2">
+      <label class="modal-label">4. Direct External Browser Movie URL (Optional — e.g. <code>https://cinemaos.me/watch/movie/1368337</code>):</label>
+      <input id="setupExternalMovieInput" class="modal-input" placeholder="https://cinemaos.me/watch/movie/1368337">
+      <input id="setupExternalTvInput" class="modal-input" placeholder="https://cinemaos.me/watch/tv/213375?season=1&episode=2">
 
       <div class="shelf-toggle-item" id="setupSoundToggleRow" style="margin-top:8px;">
         <span style="font-size:13.5px;color:#fff;font-weight:600;">Navigation Sound Effects</span>
@@ -423,22 +423,22 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   </div>
 </div>
 
-<!-- Player Sources Modal (Direct URL Entry) -->
+<!-- Player Sources Modal (Supports Embed-Only, External-Only, or Both) -->
 <div id="playerModal" class="modal-overlay">
   <div class="modal-box">
     <div class="modal-body" id="playerModalBody">
       <h2>Streaming Player Sources</h2>
-      <p>Paste your Movie and TV Show URLs directly (sample links like <code>/player/1368337</code> or placeholders like <code>{tmdb_id}</code>, <code>{season}</code>, <code>{episode}</code> both work). Press <b>3</b> during playback to cycle through all added players.</p>
+      <p>Fill in <b>Embed URLs</b>, <b>Direct External URLs</b>, or both. Sample links (like <code>/player/1368337</code>) or placeholders (<code>{tmdb_id}</code>, <code>{season}</code>, <code>{episode}</code>) both work. Press <b>3</b> during playback to switch players.</p>
       
       <div id="playerListContainer"></div>
 
       <div style="border-top:1px solid var(--border-subtle);padding-top:14px;margin-top:14px;">
         <h3 style="font-size:14px;margin:0 0 10px;color:var(--white);">+ Add Player Source</h3>
         
-        <label class="modal-label">1. Movie Embed URL (e.g. <code>https://cinemaos.tech/player/1368337</code>):</label>
+        <label class="modal-label">1. Movie Embed URL (Optional — e.g. <code>https://cinemaos.tech/player/1368337</code>):</label>
         <input id="inputAddMovieUrl" class="modal-input" placeholder="https://cinemaos.tech/player/1368337">
         
-        <label class="modal-label">2. TV Show Embed URL (e.g. <code>https://cinemaos.tech/player/213375/1/2</code>):</label>
+        <label class="modal-label">2. TV Show Embed URL (Optional — e.g. <code>https://cinemaos.tech/player/213375/1/2</code>):</label>
         <input id="inputAddTvUrl" class="modal-input" placeholder="https://cinemaos.tech/player/213375/1/2">
 
         <label class="modal-label">3. Direct External Browser Movie URL (Optional — e.g. <code>https://cinemaos.me/watch/movie/1368337</code>):</label>
@@ -456,7 +456,7 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   </div>
 </div>
 
-<!-- Edit Player Modal (Direct URL Editing) -->
+<!-- Edit Player Modal -->
 <div id="editPlayerModal" class="modal-overlay">
   <div class="modal-box">
     <div class="modal-body">
@@ -466,11 +466,11 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
       <label class="modal-label">Player Label:</label>
       <input id="editPlayerName" class="modal-input">
 
-      <label class="modal-label">Movie Embed URL:</label>
-      <input id="editPlayerMovieTpl" class="modal-input">
+      <label class="modal-label">Movie Embed URL (Optional):</label>
+      <input id="editPlayerMovieTpl" class="modal-input" placeholder="Leave empty for External-Only mode">
 
-      <label class="modal-label">TV Embed URL:</label>
-      <input id="editPlayerTvTpl" class="modal-input">
+      <label class="modal-label">TV Embed URL (Optional):</label>
+      <input id="editPlayerTvTpl" class="modal-input" placeholder="Leave empty for External-Only mode">
 
       <label class="modal-label">External Browser Movie URL (Optional):</label>
       <input id="editPlayerExtMovieTpl" class="modal-input" placeholder="Leave empty to use Movie Embed URL">
@@ -594,7 +594,7 @@ function loadShelfPreferences() {
 }
 loadShelfPreferences();
 
-/* Direct URL Player List (No Hardcoded Players or Mirrors) */
+/* Direct URL Player List (Supports Embed-Only, External-Only, or Both) */
 let playerSources = [];
 let activeSourceIdx = 0;
 let editingPlayerIdx = -1;
@@ -603,8 +603,6 @@ function decodeTokens(str) {
   return (str || "").replace(/%7B([a-zA-Z0-9_]+)%7D/gi, "{$1}");
 }
 
-/* Direct URL Template Parser:
-   Preserves literal {tmdb_id}, {id}, {season}, {episode} placeholders without URL-encoding braces */
 function parseDirectUrl(rawUrl, forceType = null) {
   const trimmed = (rawUrl || "").trim();
   if (!trimmed) return null;
@@ -674,7 +672,6 @@ function normalizePlayer(p) {
   let extMovieTpl = decodeTokens(p.extMovieTpl);
   let extTvTpl = decodeTokens(p.extTvTpl);
 
-  // Migrate any legacy {domain} template using its stored domain
   const legacyDomain = (Array.isArray(p.domains) && p.domains[p.activeDomainIdx || 0]) || p.domain || "";
   if (legacyDomain) {
     movieTpl = movieTpl.replaceAll("{domain}", legacyDomain);
@@ -686,7 +683,8 @@ function normalizePlayer(p) {
   let label = p.name || "";
   if (!label) {
     try {
-      label = new URL((movieTpl || tvTpl).replace(/\{[^}]+\}/g, "1")).hostname.replace(/^www\./, "");
+      const sample = movieTpl || tvTpl || extMovieTpl || extTvTpl;
+      label = new URL(sample.replace(/\{[^}]+\}/g, "1")).hostname.replace(/^www\./, "");
     } catch (_) {
       label = "Custom Player";
     }
@@ -728,23 +726,27 @@ function renderPlayerList() {
   container.innerHTML = "";
 
   if (!playerSources.length) {
-    container.innerHTML = `<div class="empty-players-banner">No players configured yet. Paste your Movie and TV Show URLs below to add your first player.</div>`;
+    container.innerHTML = `<div class="empty-players-banner">No players configured yet. Paste your Movie or TV Show URLs below to add your first player.</div>`;
     return;
   }
 
   playerSources.forEach((p, idx) => {
     const card = document.createElement("div");
     card.className = "player-item-card";
+    const mDisplay = p.movieTpl || p.extMovieTpl || "—";
+    const tDisplay = p.tvTpl || p.extTvTpl || "—";
+    const modeTag = (!p.movieTpl && !p.tvTpl) ? " (External Only)" : "";
+
     card.innerHTML = `
       <div class="player-item-header">
-        <span class="player-item-title" title="${idx + 1}. ${p.name}">${idx + 1}. ${p.name}</span>
+        <span class="player-item-title" title="${idx + 1}. ${p.name}">${idx + 1}. ${p.name}${modeTag}</span>
         <div style="display:flex;gap:6px;flex-shrink:0;">
           <button class="modal-btn btn-secondary player-edit-btn" style="padding:4px 10px;font-size:12px;" onclick="openEditPlayer(${idx})">✏ Edit</button>
           <button class="modal-btn btn-danger player-del-btn" style="padding:4px 10px;font-size:12px;" onclick="deletePlayer(${idx})">Delete</button>
         </div>
       </div>
-      <div class="player-item-sub" title="${p.movieTpl}">Movie: ${p.movieTpl}</div>
-      <div class="player-item-sub" title="${p.tvTpl}">TV: ${p.tvTpl}</div>
+      <div class="player-item-sub" title="${mDisplay}">Movie: ${mDisplay}</div>
+      <div class="player-item-sub" title="${tDisplay}">TV: ${tDisplay}</div>
     `;
     container.appendChild(card);
   });
@@ -755,8 +757,8 @@ window.openEditPlayer = function(idx) {
   const p = playerSources[idx];
   document.getElementById("editPlayerTitle").textContent = `Edit ${p.name}`;
   document.getElementById("editPlayerName").value = p.name;
-  document.getElementById("editPlayerMovieTpl").value = p.movieTpl;
-  document.getElementById("editPlayerTvTpl").value = p.tvTpl;
+  document.getElementById("editPlayerMovieTpl").value = p.movieTpl || "";
+  document.getElementById("editPlayerTvTpl").value = p.tvTpl || "";
   document.getElementById("editPlayerExtMovieTpl").value = p.extMovieTpl || "";
   document.getElementById("editPlayerExtTvTpl").value = p.extTvTpl || "";
   document.getElementById("editPlayerModal").style.display = "flex";
@@ -767,8 +769,8 @@ document.getElementById("btnSavePlayerEdit").onclick = () => {
   if (editingPlayerIdx < 0) return;
   const p = playerSources[editingPlayerIdx];
   p.name = document.getElementById("editPlayerName").value.trim() || p.name;
-  p.movieTpl = document.getElementById("editPlayerMovieTpl").value.trim() || p.movieTpl;
-  p.tvTpl = document.getElementById("editPlayerTvTpl").value.trim() || p.tvTpl;
+  p.movieTpl = document.getElementById("editPlayerMovieTpl").value.trim();
+  p.tvTpl = document.getElementById("editPlayerTvTpl").value.trim();
   p.extMovieTpl = document.getElementById("editPlayerExtMovieTpl").value.trim();
   p.extTvTpl = document.getElementById("editPlayerExtTvTpl").value.trim();
 
@@ -797,33 +799,34 @@ document.getElementById("btnAddPlayerSubmit").onclick = () => {
   const extMovieVal = document.getElementById("inputAddExtMovieUrl").value.trim();
   const extTvVal = document.getElementById("inputAddExtTvUrl").value.trim();
 
-  if (!movieVal && !tvVal) {
-    alert("Please provide at least a Movie or TV Show URL.");
+  if (!movieVal && !tvVal && !extMovieVal && !extTvVal) {
+    alert("Please provide at least one Movie or TV Show URL (Embed or External).");
     return;
   }
 
   const movieParsed = movieVal ? parseDirectUrl(movieVal, "movie") : null;
   const tvParsed = tvVal ? parseDirectUrl(tvVal, "tv") : null;
+  const extMovieParsed = extMovieVal ? parseDirectUrl(extMovieVal, "movie") : null;
+  const extTvParsed = extTvVal ? parseDirectUrl(extTvVal, "tv") : null;
 
-  if (!movieParsed && !tvParsed) {
-    alert("Please enter a valid URL (e.g. https://cinemaos.tech/player/1368337).");
+  const anyParsed = movieParsed || tvParsed || extMovieParsed || extTvParsed;
+  if (!anyParsed) {
+    alert("Please enter a valid URL (e.g. https://domain.com/watch/movie/1368337).");
     return;
   }
 
-  const label = (movieParsed && movieParsed.label) || (tvParsed && tvParsed.label) || "Custom Player";
-  const finalMovieTpl = movieParsed ? movieParsed.rawTpl : tvParsed.movieTpl;
-  const finalTvTpl = tvParsed ? tvParsed.rawTpl : movieParsed.tvTpl;
+  const label = anyParsed.label || "Custom Player";
 
-  let finalExtMovieTpl = "";
-  let finalExtTvTpl = "";
-  if (extMovieVal) {
-    const pExtM = parseDirectUrl(extMovieVal, "movie");
-    finalExtMovieTpl = pExtM ? pExtM.rawTpl : decodeTokens(extMovieVal);
-  }
-  if (extTvVal) {
-    const pExtT = parseDirectUrl(extTvVal, "tv");
-    finalExtTvTpl = pExtT ? pExtT.rawTpl : decodeTokens(extTvVal);
-  }
+  const finalMovieTpl = movieParsed ? movieParsed.rawTpl : (tvParsed ? tvParsed.movieTpl : "");
+  const finalTvTpl = tvParsed ? tvParsed.rawTpl : (movieParsed ? movieParsed.tvTpl : "");
+
+  const finalExtMovieTpl = extMovieParsed
+    ? extMovieParsed.rawTpl
+    : (extTvParsed ? extTvParsed.movieTpl : decodeTokens(extMovieVal));
+
+  const finalExtTvTpl = extTvParsed
+    ? extTvParsed.rawTpl
+    : (extMovieParsed ? extMovieParsed.tvTpl : decodeTokens(extTvVal));
 
   playerSources.push(normalizePlayer({
     name: label,
@@ -884,20 +887,30 @@ document.getElementById("btnSaveSetup").onclick = () => {
   localStorage.setItem("cinehome_sound_enabled", String(soundEnabled));
   localStorage.setItem("cinehome_setup_completed", "true");
 
-  if (movieVal || tvVal) {
+  if (movieVal || tvVal || extMovieVal || extTvVal) {
     const movieParsed = movieVal ? parseDirectUrl(movieVal, "movie") : null;
     const tvParsed = tvVal ? parseDirectUrl(tvVal, "tv") : null;
-    if (movieParsed || tvParsed) {
-      const label = (movieParsed && movieParsed.label) || (tvParsed && tvParsed.label) || "Custom Player";
-      const pExtM = extMovieVal ? parseDirectUrl(extMovieVal, "movie") : null;
-      const pExtT = extTvVal ? parseDirectUrl(extTvVal, "tv") : null;
+    const extMovieParsed = extMovieVal ? parseDirectUrl(extMovieVal, "movie") : null;
+    const extTvParsed = extTvVal ? parseDirectUrl(extTvVal, "tv") : null;
+
+    const anyParsed = movieParsed || tvParsed || extMovieParsed || extTvParsed;
+    if (anyParsed) {
+      const label = anyParsed.label || "Custom Player";
+      const finalMovieTpl = movieParsed ? movieParsed.rawTpl : (tvParsed ? tvParsed.movieTpl : "");
+      const finalTvTpl = tvParsed ? tvParsed.rawTpl : (movieParsed ? movieParsed.tvTpl : "");
+      const finalExtMovieTpl = extMovieParsed
+        ? extMovieParsed.rawTpl
+        : (extTvParsed ? extTvParsed.movieTpl : decodeTokens(extMovieVal));
+      const finalExtTvTpl = extTvParsed
+        ? extTvParsed.rawTpl
+        : (extMovieParsed ? extMovieParsed.tvTpl : decodeTokens(extTvVal));
 
       playerSources.unshift(normalizePlayer({
         name: label,
-        movieTpl: movieParsed ? movieParsed.rawTpl : tvParsed.movieTpl,
-        tvTpl: tvParsed ? tvParsed.rawTpl : movieParsed.tvTpl,
-        extMovieTpl: pExtM ? pExtM.rawTpl : decodeTokens(extMovieVal),
-        extTvTpl: pExtT ? pExtT.rawTpl : decodeTokens(extTvVal)
+        movieTpl: finalMovieTpl,
+        tvTpl: finalTvTpl,
+        extMovieTpl: finalExtMovieTpl,
+        extTvTpl: finalExtTvTpl
       }));
       activeSourceIdx = 0;
       savePlayersLocally();
@@ -1753,6 +1766,13 @@ function loadPlayerSource() {
 
   const activePlayer = playerSources[activeSourceIdx];
   const embedUrl = getResolvedPlayerUrl(activePlayer, currentItem, "embed");
+
+  // If this player only has External URLs configured (no embed URL), launch external tab directly
+  if (!embedUrl) {
+    launchExternal();
+    closePlayer();
+    return;
+  }
 
   playerFrame.src = embedUrl;
   triggerHudActivity();
