@@ -24,7 +24,7 @@
 
 body {
   margin: 0;
-  padding: 16px 18px 28px;
+  padding: 16px 18px 26px;
   background: var(--bg);
   color: var(--white);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -32,13 +32,14 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 16px;
+  gap: 14px;
 }
 
 .top-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .brand-wrap {
@@ -47,7 +48,7 @@ body {
 }
 
 .brand {
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 800;
   letter-spacing: -0.4px;
 }
@@ -56,13 +57,30 @@ body {
   font-size: 11px;
   font-family: monospace;
   color: var(--muted);
-  margin-top: 2px;
+  cursor: pointer;
+}
+
+.top-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-pill {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--white);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .conn-pill {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 5px 11px;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 6px 11px;
   border-radius: 999px;
   background: rgba(78, 242, 187, 0.12);
   color: var(--mint);
@@ -101,20 +119,20 @@ body {
   cursor: pointer;
 }
 
+/* Circular D-Pad View */
 .dpad-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 6px 0;
+  margin: 4px 0;
 }
 
 .dpad-ring {
-  width: min(74vw, 270px);
-  height: min(74vw, 270px);
+  width: min(72vw, 260px);
+  height: min(72vw, 260px);
   border-radius: 50%;
   background: var(--surface);
   border: 2px solid var(--border);
-  position: relative;
   display: grid;
   grid-template-columns: 1fr 1.15fr 1fr;
   grid-template-rows: 1fr 1.15fr 1fr;
@@ -133,7 +151,6 @@ body {
   justify-content: center;
   border-radius: 18px;
   cursor: pointer;
-  transition: background 0.1s, transform 0.08s;
 }
 
 .pad-btn:active {
@@ -147,13 +164,52 @@ body {
   border-radius: 50%;
   font-size: 16px;
   font-weight: 900;
-  letter-spacing: 0.5px;
   box-shadow: 0 4px 18px rgba(255, 255, 255, 0.25);
 }
 
 .pad-ok:active {
   background: #d4d4d8;
   transform: scale(0.92);
+}
+
+/* Classic Numpad View */
+.numpad-grid {
+  display: none;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  max-width: 320px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.num-btn {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 8px;
+  color: var(--white);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+}
+
+.num-btn strong {
+  font-size: 18px;
+}
+
+.num-btn span {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.num-btn:active {
+  background: var(--surface-press);
+  border-color: var(--white);
 }
 
 .action-grid {
@@ -166,9 +222,9 @@ body {
   background: var(--surface);
   border: 1.5px solid var(--border);
   color: var(--white);
-  padding: 15px 12px;
+  padding: 14px 12px;
   border-radius: 14px;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -180,7 +236,6 @@ body {
 .act-btn:active {
   background: var(--surface-press);
   border-color: var(--white);
-  transform: scale(0.97);
 }
 
 .act-btn.exit-btn {
@@ -194,18 +249,23 @@ body {
 
 <div class="top-bar">
   <div class="brand-wrap">
-    <div class="brand">CineHome Remote</div>
-    <div id="roomDisplay" class="room-tag">Device ID: --</div>
+    <div class="brand">CineHome</div>
+    <div id="roomDisplay" class="room-tag" title="Tap to change Gadget ID">Device: ------</div>
   </div>
-  <div id="connStatus" class="conn-pill">● Paired</div>
+  <div class="top-controls">
+    <button id="btnToggleLayout" class="icon-pill" type="button">🔢 Numpad</button>
+    <button id="btnToggleVibe" class="icon-pill" type="button">📳 On</button>
+    <div id="connStatus" class="conn-pill">● Ready</div>
+  </div>
 </div>
 
 <form class="search-box" id="remoteSearchForm">
-  <input id="remoteSearchInput" type="search" placeholder="Type title to search on TV..." autocomplete="off">
+  <input id="remoteSearchInput" type="search" placeholder="Search title on TV..." autocomplete="off">
   <button class="btn-send" type="submit">Go</button>
 </form>
 
-<div class="dpad-wrapper">
+<!-- D-Pad Mode -->
+<div id="dpadContainer" class="dpad-wrapper">
   <div class="dpad-ring">
     <div></div>
     <button class="pad-btn" type="button" data-cmd="UP">▲</button>
@@ -221,6 +281,19 @@ body {
   </div>
 </div>
 
+<!-- Classic Numpad Mode -->
+<div id="numpadContainer" class="numpad-grid">
+  <button class="num-btn" type="button" data-cmd="SEARCH"><strong>1</strong><span>Search</span></button>
+  <button class="num-btn" type="button" data-cmd="UP"><strong>2</strong><span>Up</span></button>
+  <button class="num-btn" type="button" data-cmd="MIRROR"><strong>3</strong><span>Mirror</span></button>
+  <button class="num-btn" type="button" data-cmd="LEFT"><strong>4</strong><span>Left</span></button>
+  <button class="num-btn" type="button" data-cmd="SELECT" style="background:var(--white);color:#000;"><strong>5</strong><span style="color:#000;">Play</span></button>
+  <button class="num-btn" type="button" data-cmd="RIGHT"><strong>6</strong><span>Right</span></button>
+  <button class="num-btn" type="button" data-cmd="EXTERNAL"><strong>7</strong><span>External</span></button>
+  <button class="num-btn" type="button" data-cmd="DOWN"><strong>8</strong><span>Down</span></button>
+  <button class="num-btn" type="button" data-cmd="BACK"><strong>0</strong><span>Home</span></button>
+</div>
+
 <div class="action-grid">
   <button class="act-btn exit-btn" type="button" data-cmd="BACK">✕ Back / Home</button>
   <button class="act-btn" type="button" data-cmd="SEARCH">🔍 Open Search</button>
@@ -230,15 +303,65 @@ body {
 
 <script>
 const params = new URLSearchParams(window.location.search);
-const roomId = (params.get("room") || "DEFAULT").toUpperCase();
-document.getElementById("roomDisplay").textContent = `Paired Device: ${roomId}`;
+let roomId = (params.get("room") || localStorage.getItem("cinehome_paired_room") || "").toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+
+if (!roomId) {
+  roomId = (prompt("Enter the 6-character Device ID shown on your TV's Phone Remote QR screen:") || "DEFAULT").toUpperCase().trim();
+}
+localStorage.setItem("cinehome_paired_room", roomId);
+
+const roomDisplay = document.getElementById("roomDisplay");
+roomDisplay.textContent = `Gadget: ${roomId} ✎`;
+roomDisplay.onclick = () => {
+  const next = prompt("Enter Gadget ID shown on TV:", roomId);
+  if (next && next.trim()) {
+    roomId = next.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+    localStorage.setItem("cinehome_paired_room", roomId);
+    roomDisplay.textContent = `Gadget: ${roomId} ✎`;
+  }
+};
+
+// Remote Layout & Haptics Config
+let layoutMode = localStorage.getItem("cinehome_remote_layout") || "dpad";
+let vibeEnabled = localStorage.getItem("cinehome_remote_vibe") !== "false";
+
+const dpadContainer = document.getElementById("dpadContainer");
+const numpadContainer = document.getElementById("numpadContainer");
+const btnToggleLayout = document.getElementById("btnToggleLayout");
+const btnToggleVibe = document.getElementById("btnToggleVibe");
+
+function applyRemotePrefs() {
+  if (layoutMode === "numpad") {
+    dpadContainer.style.display = "none";
+    numpadContainer.style.display = "grid";
+    btnToggleLayout.textContent = "⭕ D-Pad";
+  } else {
+    dpadContainer.style.display = "flex";
+    numpadContainer.style.display = "none";
+    btnToggleLayout.textContent = "🔢 Numpad";
+  }
+  btnToggleVibe.textContent = vibeEnabled ? "📳 On" : "📴 Off";
+}
+applyRemotePrefs();
+
+btnToggleLayout.onclick = () => {
+  layoutMode = layoutMode === "dpad" ? "numpad" : "dpad";
+  localStorage.setItem("cinehome_remote_layout", layoutMode);
+  applyRemotePrefs();
+};
+
+btnToggleVibe.onclick = () => {
+  vibeEnabled = !vibeEnabled;
+  localStorage.setItem("cinehome_remote_vibe", String(vibeEnabled));
+  applyRemotePrefs();
+};
 
 const connStatus = document.getElementById("connStatus");
 const searchForm = document.getElementById("remoteSearchForm");
 const searchInput = document.getElementById("remoteSearchInput");
 
 async function sendCmd(action, value = null) {
-  if (navigator.vibrate) navigator.vibrate(18);
+  if (vibeEnabled && navigator.vibrate) navigator.vibrate(18);
   try {
     const r = await fetch("/api/remote-cmd", {
       method: "POST",
@@ -246,7 +369,7 @@ async function sendCmd(action, value = null) {
       body: JSON.stringify({ room: roomId, action, value })
     });
     const d = await r.json();
-    connStatus.textContent = d.ok ? "● Sent" : "✕ Error";
+    connStatus.textContent = d.deliveredTo > 0 ? "● Paired" : "● Sent";
   } catch (e) {
     connStatus.textContent = "✕ Offline";
   }
