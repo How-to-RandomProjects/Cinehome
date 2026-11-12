@@ -1,34 +1,4 @@
 {
   "tmdbApiKey": "",
-  "customPlayers": [
-    {
-      "name": "CinemaOS",
-      "domains": [
-        "cinemaos.tech",
-        "cinemaos.me",
-        "cinemaos.live"
-      ],
-      "activeDomainIdx": 0,
-      "movieTpl": "https://{domain}/player/{id}?theme=ffffff",
-      "tvTpl": "https://{domain}/player/{id}?theme=ffffff&type=tv&s=1&e=1"
-    },
-    {
-      "name": "Vidrift",
-      "domains": [
-        "embed.vidrift.net"
-      ],
-      "activeDomainIdx": 0,
-      "movieTpl": "https://{domain}/embed/movie/{id}?title={title}",
-      "tvTpl": "https://{domain}/embed/tv/{id}/1/1"
-    },
-    {
-      "name": "VidFast",
-      "domains": [
-        "vidfast.vc"
-      ],
-      "activeDomainIdx": 0,
-      "movieTpl": "https://{domain}/movie/{id}?autoPlay=true",
-      "tvTpl": "https://{domain}/tv/{id}/1/1?autoPlay=true"
-    }
-  ]
+  "customPlayers": []
 }
