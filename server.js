@@ -17,10 +17,10 @@ const MAX_BODY = 64 * 1024;
 const tmdbCache = new Map();
 const CACHE_TTL_MS = 15 * 60 * 1000;
 
-// Room-isolated command queues & SSE connections: Map<roomId, Set<res>>
+// Room-isolated SSE clients and command queues: Map<roomId, Set<res>>
 const roomClients = new Map();
-// Map<roomId, { seq: number, commands: Array }>
 const roomQueues = new Map();
+let globalSeq = 0;
 
 function getLocalNetworkIP() {
   const interfaces = os.networkInterfaces();
@@ -34,21 +34,23 @@ function getLocalNetworkIP() {
   return '127.0.0.1';
 }
 
-function getServerDefaultTmdbKey() {
-  const envKey = (process.env.TMDB_API_KEY || process.env.TMDB_KEY || '').trim();
-  if (envKey) return envKey;
-  try {
-    const parsed = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-    if (typeof parsed.tmdbApiKey === 'string' && parsed.tmdbApiKey.trim()) {
-      return parsed.tmdbApiKey.trim();
-    }
-  } catch (_) {}
-  return '';
+function sanitizeRoomId(raw) {
+  const clean = String(raw || 'DEFAULT').toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 16);
+  return clean || 'DEFAULT';
 }
 
-function sanitizeRoomId(raw) {
-  const clean = String(raw || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
-  return clean.slice(0, 24) || 'DEFAULT';
+function readServerConfig() {
+  let fileConfig = {};
+  try {
+    fileConfig = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+  } catch (_) {}
+
+  const envKey = (process.env.TMDB_API_KEY || process.env.TMDB_KEY || '').trim();
+  const fileKey = typeof fileConfig.tmdbApiKey === 'string' ? fileConfig.tmdbApiKey.trim() : '';
+  return {
+    tmdbApiKey: envKey || fileKey || '',
+    customPlayers: Array.isArray(fileConfig.customPlayers) ? fileConfig.customPlayers : null
+  };
 }
 
 function send(res, status, payload, contentType = 'application/json; charset=utf-8') {
@@ -82,23 +84,13 @@ function readBody(req) {
 }
 
 function broadcastToRoom(roomId, payload) {
-  if (!roomQueues.has(roomId)) {
-    roomQueues.set(roomId, { seq: 0, commands: [] });
-  }
-  const state = roomQueues.get(roomId);
-  state.seq += 1;
-  const entry = { seq: state.seq, time: Date.now(), ...payload };
-  state.commands.push(entry);
-  if (state.commands.length > 30) state.commands.shift();
+  globalSeq++;
+  const entry = { seq: globalSeq, time: Date.now(), room: roomId, ...payload };
 
-  // Prune old inactive rooms periodically
-  if (roomQueues.size > 500) {
-    const now = Date.now();
-    for (const [k, v] of roomQueues.entries()) {
-      const last = v.commands[v.commands.length - 1];
-      if (!last || now - last.time > 3600000) roomQueues.delete(k);
-    }
-  }
+  if (!roomQueues.has(roomId)) roomQueues.set(roomId, []);
+  const queue = roomQueues.get(roomId);
+  queue.push(entry);
+  if (queue.length > 30) queue.shift();
 
   const clients = roomClients.get(roomId);
   let delivered = 0;
@@ -121,30 +113,21 @@ async function handle(req, res) {
   const protoHeader = req.headers['x-forwarded-proto'] || 'http';
   const url = new URL(req.url, `${protoHeader}://${hostHeader}`);
   const pathname = url.pathname;
+  const serverCfg = readServerConfig();
 
-  // 1. Public Status Check (Whether server has a built-in TMDB key or client needs one)
-  if (req.method === 'GET' && pathname === '/api/status') {
-    const serverKey = getServerDefaultTmdbKey();
-    return send(res, 200, { hasServerKey: Boolean(serverKey) });
-  }
-
-  // 2. Network / Public URL Info for Device-Specific QR Code
-  if (req.method === 'GET' && pathname === '/api/network-info') {
-    const roomId = sanitizeRoomId(url.searchParams.get('room'));
-    const isPublicHost = Boolean(process.env.VERCEL || req.headers['x-vercel-id'] || !hostHeader.startsWith('localhost') && !hostHeader.startsWith('127.0.0.1'));
-    const baseUrl = isPublicHost
-      ? `${protoHeader}://${hostHeader}`
-      : `http://${getLocalNetworkIP()}:${PORT}`;
-
-    const clients = roomClients.get(roomId);
+  // 1. Public Boot Status (Checks if server already has a TMDB key configured)
+  if (req.method === 'GET' && pathname === '/api/boot-info') {
+    const isVercel = Boolean(process.env.VERCEL || req.headers['x-vercel-id']);
+    const ip = isVercel ? hostHeader : getLocalNetworkIP();
+    const baseUrl = isVercel ? `${protoHeader}://${hostHeader}` : `http://${ip}:${PORT}`;
     return send(res, 200, {
-      room: roomId,
-      remoteUrl: `${baseUrl}/remote?room=${encodeURIComponent(roomId)}`,
-      connectedScreens: clients ? clients.size : 0
+      hasServerKey: Boolean(serverCfg.tmdbApiKey),
+      serverPlayers: serverCfg.customPlayers,
+      baseUrl
     });
   }
 
-  // 3. Room-Isolated SSE Stream
+  // 2. Room-Isolated Real-Time SSE Stream (TV Listens Here)
   if (req.method === 'GET' && pathname === '/api/remote-events') {
     const roomId = sanitizeRoomId(url.searchParams.get('room'));
     res.writeHead(200, {
@@ -153,13 +136,10 @@ async function handle(req, res) {
       'Connection': 'keep-alive',
       'Access-Control-Allow-Origin': '*'
     });
+    res.write(`data: ${JSON.stringify({ type: 'CONNECTED', room: roomId, seq: globalSeq })}\n\n`);
 
     if (!roomClients.has(roomId)) roomClients.set(roomId, new Set());
-    const set = roomClients.get(roomId);
-    set.add(res);
-
-    const currentSeq = roomQueues.get(roomId)?.seq || 0;
-    res.write(`data: ${JSON.stringify({ type: 'CONNECTED', room: roomId, seq: currentSeq })}\n\n`);
+    roomClients.get(roomId).add(res);
 
     const keepAlive = setInterval(() => {
       try { res.write(': ping\n\n'); } catch (_) {}
@@ -167,61 +147,42 @@ async function handle(req, res) {
 
     req.on('close', () => {
       clearInterval(keepAlive);
-      set.delete(res);
-      if (set.size === 0) roomClients.delete(roomId);
+      const set = roomClients.get(roomId);
+      if (set) {
+        set.delete(res);
+        if (set.size === 0) roomClients.delete(roomId);
+      }
     });
     return;
   }
 
-  // 4. Room-Isolated Serverless Polling Endpoint
+  // 3. Room-Isolated Polling Fallback (For Serverless / Vercel)
   if (req.method === 'GET' && pathname === '/api/remote-poll') {
     const roomId = sanitizeRoomId(url.searchParams.get('room'));
     const since = Number(url.searchParams.get('since') || 0);
-    const state = roomQueues.get(roomId);
-    if (!state) return send(res, 200, { seq: 0, commands: [] });
-
-    const pending = state.commands.filter(c => c.seq > since && Date.now() - c.time < 12000);
-    return send(res, 200, { seq: state.seq, commands: pending });
+    const queue = roomQueues.get(roomId) || [];
+    const pending = queue.filter(c => c.seq > since && Date.now() - c.time < 12000);
+    const connectedCount = roomClients.has(roomId) ? roomClients.get(roomId).size : 0;
+    return send(res, 200, { seq: globalSeq, commands: pending, connectedScreens: connectedCount });
   }
 
-  // 5. Receive Remote Command for Specific Device Room
+  // 4. Receive Command from Paired Phone Web Remote
   if (req.method === 'POST' && pathname === '/api/remote-cmd') {
     let body;
     try { body = await readBody(req); }
     catch (e) { return send(res, 400, { error: e.message }); }
-
     const roomId = sanitizeRoomId(body.room || url.searchParams.get('room'));
-    const delivered = broadcastToRoom(roomId, { action: body.action, value: body.value });
-    return send(res, 200, { ok: true, room: roomId, deliveredTo: delivered || 1 });
+    const delivered = broadcastToRoom(roomId, body);
+    return send(res, 200, { ok: true, room: roomId, deliveredTo: delivered });
   }
 
-  // 6. Validate User TMDB Key
-  if (req.method === 'POST' && pathname === '/api/validate-key') {
-    let body;
-    try { body = await readBody(req); }
-    catch (e) { return send(res, 400, { error: e.message }); }
-
-    const testKey = String(body.apiKey || '').trim();
-    if (!testKey) return send(res, 400, { valid: false, error: 'API key is required' });
-
-    try {
-      const check = await fetch(`https://api.themoviedb.org/3/configuration?api_key=${encodeURIComponent(testKey)}`, {
-        signal: AbortSignal.timeout(10000)
-      });
-      if (!check.ok) return send(res, 400, { valid: false, error: 'TMDB rejected this API key.' });
-      return send(res, 200, { valid: true });
-    } catch (_) {
-      return send(res, 502, { valid: false, error: 'Could not reach TMDB to verify key.' });
-    }
-  }
-
-  // 7. TMDB Proxy (Uses User-Provided Key Header or Server Env Key)
+  // 5. TMDB Proxy (Supports Server Env Key OR Client Setup Key via X-TMDB-Key)
   if (req.method === 'GET' && pathname === '/api/tmdb') {
-    const userKey = String(req.headers['x-tmdb-key'] || url.searchParams.get('api_key') || '').trim();
-    const effectiveKey = userKey || getServerDefaultTmdbKey();
+    const clientKey = (req.headers['x-tmdb-key'] || '').trim();
+    const activeKey = serverCfg.tmdbApiKey || clientKey;
 
-    if (!effectiveKey) {
-      return send(res, 428, { error: 'TMDB API key required' });
+    if (!activeKey) {
+      return send(res, 428, { error: 'TMDB_API_KEY_REQUIRED' });
     }
 
     const tmdbPath = url.searchParams.get('path') || '';
@@ -238,7 +199,7 @@ async function handle(req, res) {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const target = new URL(`https://api.themoviedb.org/3${tmdbPath}`);
-        target.searchParams.set('api_key', effectiveKey);
+        target.searchParams.set('api_key', activeKey);
         const upstream = await fetch(target, {
           headers: { Accept: 'application/json' },
           signal: AbortSignal.timeout(15000)
@@ -259,7 +220,7 @@ async function handle(req, res) {
     return send(res, 502, { error: 'TMDB request failed', detail: lastError?.message });
   }
 
-  // 8. Serve Mobile Web Remote (/remote)
+  // 6. Serve Mobile Web Remote (/remote)
   if (req.method === 'GET' && pathname === '/remote') {
     try {
       const html = fs.readFileSync(REMOTE_FILE);
@@ -274,7 +235,7 @@ async function handle(req, res) {
     }
   }
 
-  // 9. Serve Main TV Interface (/)
+  // 7. Serve Main TV Interface (/)
   if (req.method === 'GET' && (pathname === '/' || pathname === '/index.html')) {
     try {
       const html = fs.readFileSync(HTML_FILE);
@@ -310,6 +271,7 @@ if (process.env.VERCEL) {
 } else {
   server.listen(PORT, HOST, () => {
     const ip = getLocalNetworkIP();
-    console.log(`CineHome running at: http://${ip}:${PORT}`);
+    console.log(`CineHome TV running at:     http://${ip}:${PORT}`);
+    console.log(`Mobile Web Remote at:     http://${ip}:${PORT}/remote`);
   });
 }
