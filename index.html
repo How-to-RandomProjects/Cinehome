@@ -599,9 +599,12 @@ let playerSources = [];
 let activeSourceIdx = 0;
 let editingPlayerIdx = -1;
 
+function decodeTokens(str) {
+  return (str || "").replace(/%7B([a-zA-Z0-9_]+)%7D/gi, "{$1}");
+}
+
 /* Direct URL Template Parser:
-   Keeps the exact URL entered by the user and converts sample IDs/season/episode
-   numbers into {tmdb_id}, {season}, and {episode} placeholders. */
+   Preserves literal {tmdb_id}, {id}, {season}, {episode} placeholders without URL-encoding braces */
 function parseDirectUrl(rawUrl, forceType = null) {
   const trimmed = (rawUrl || "").trim();
   if (!trimmed) return null;
@@ -609,14 +612,14 @@ function parseDirectUrl(rawUrl, forceType = null) {
   try {
     const u = new URL(trimmed);
     const label = u.hostname.replace(/^www\./, "");
-    let path = u.pathname;
-    let search = u.search;
+    let path = decodeURIComponent(u.pathname);
+    let search = decodeURIComponent(u.search);
 
-    const hasIdToken = /\{(tmdb_)?id\}/i.test(trimmed);
+    const hasIdToken = /\{(tmdb_)?id\}/i.test(path + search);
     const isTV = forceType === "tv"
       || /\/(tv|show|series)\b/i.test(path)
       || /[?&](season|s)=/i.test(search)
-      || /\{season\}|\{s\}/i.test(trimmed);
+      || /\{season\}|\{s\}/i.test(path + search);
 
     if (!hasIdToken) {
       const tvTriple = path.match(/^(.*\/)(\d+)\/(\d+)\/(\d+)(\/?)$/);
@@ -666,10 +669,10 @@ function parseDirectUrl(rawUrl, forceType = null) {
 
 function normalizePlayer(p) {
   if (!p) return null;
-  let movieTpl = p.movieTpl || "";
-  let tvTpl = p.tvTpl || "";
-  let extMovieTpl = p.extMovieTpl || "";
-  let extTvTpl = p.extTvTpl || "";
+  let movieTpl = decodeTokens(p.movieTpl);
+  let tvTpl = decodeTokens(p.tvTpl);
+  let extMovieTpl = decodeTokens(p.extMovieTpl);
+  let extTvTpl = decodeTokens(p.extTvTpl);
 
   // Migrate any legacy {domain} template using its stored domain
   const legacyDomain = (Array.isArray(p.domains) && p.domains[p.activeDomainIdx || 0]) || p.domain || "";
@@ -699,6 +702,7 @@ function loadPlayersFromLocal(serverDefaults = null) {
       const parsed = JSON.parse(localSaved);
       if (Array.isArray(parsed)) {
         playerSources = parsed.map(normalizePlayer).filter(Boolean);
+        savePlayersLocally();
         renderPlayerList();
         return;
       }
@@ -814,11 +818,11 @@ document.getElementById("btnAddPlayerSubmit").onclick = () => {
   let finalExtTvTpl = "";
   if (extMovieVal) {
     const pExtM = parseDirectUrl(extMovieVal, "movie");
-    finalExtMovieTpl = pExtM ? pExtM.rawTpl : extMovieVal;
+    finalExtMovieTpl = pExtM ? pExtM.rawTpl : decodeTokens(extMovieVal);
   }
   if (extTvVal) {
     const pExtT = parseDirectUrl(extTvVal, "tv");
-    finalExtTvTpl = pExtT ? pExtT.rawTpl : extTvVal;
+    finalExtTvTpl = pExtT ? pExtT.rawTpl : decodeTokens(extTvVal);
   }
 
   playerSources.push(normalizePlayer({
@@ -892,8 +896,8 @@ document.getElementById("btnSaveSetup").onclick = () => {
         name: label,
         movieTpl: movieParsed ? movieParsed.rawTpl : tvParsed.movieTpl,
         tvTpl: tvParsed ? tvParsed.rawTpl : movieParsed.tvTpl,
-        extMovieTpl: pExtM ? pExtM.rawTpl : extMovieVal,
-        extTvTpl: pExtT ? pExtT.rawTpl : extTvVal
+        extMovieTpl: pExtM ? pExtM.rawTpl : decodeTokens(extMovieVal),
+        extTvTpl: pExtT ? pExtT.rawTpl : decodeTokens(extTvVal)
       }));
       activeSourceIdx = 0;
       savePlayersLocally();
@@ -1713,7 +1717,7 @@ function getResolvedPlayerUrl(playerObj, item, mode = "embed") {
       : playerObj.movieTpl;
   }
 
-  return (template || "")
+  return decodeTokens(template)
     .replaceAll("{tmdb_id}", id)
     .replaceAll("{id}", id)
     .replaceAll("{season}", season)
