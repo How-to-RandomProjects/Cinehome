@@ -227,7 +227,7 @@ async function sendCmd(action, value = null) {
       body: JSON.stringify({ action, value })
     });
     const d = await r.json();
-    connStatus.textContent = d.deliveredTo > 0 ? `● TV Connected (${d.deliveredTo})` : "● Waiting for TV";
+    connStatus.textContent = d.deliveredTo > 0 ? "● Sent to TV" : "● Ready";
   } catch (e) {
     connStatus.textContent = "✕ Offline";
   }
