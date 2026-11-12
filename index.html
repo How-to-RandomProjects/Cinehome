@@ -359,7 +359,7 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   <div class="modal-box">
     <div class="modal-body">
       <h2>Welcome to CineHome Setup</h2>
-      <p>Enter your TMDB v3 API key and paste your streaming player URLs directly. Saved locally in your browser.</p>
+      <p>Enter your TMDB v3 API key and paste your streaming player URLs directly. All sources play in-page first, with one-tap external browser popout.</p>
 
       <label class="modal-label">1. TMDB v3 API Key (Required if not set on server):</label>
       <input id="setupTmdbKeyInput" class="modal-input" placeholder="Enter your TMDB v3 API key">
@@ -370,7 +370,7 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
       <label class="modal-label">3. TV Show Embed URL (Optional — e.g. <code>https://cinemaos.tech/player/213375/1/2</code>):</label>
       <input id="setupTvEmbedInput" class="modal-input" placeholder="https://cinemaos.tech/player/213375/1/2">
 
-      <label class="modal-label">4. Direct External Browser Movie URL (Optional — e.g. <code>https://cinemaos.me/watch/movie/1368337</code>):</label>
+      <label class="modal-label">4. Direct Watch / External Browser URLs (Optional — plays in-page first, press 7 to open external tab):</label>
       <input id="setupExternalMovieInput" class="modal-input" placeholder="https://cinemaos.me/watch/movie/1368337">
       <input id="setupExternalTvInput" class="modal-input" placeholder="https://cinemaos.me/watch/tv/213375?season=1&episode=2">
 
@@ -423,12 +423,12 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   </div>
 </div>
 
-<!-- Player Sources Modal (Supports Embed-Only, External-Only, or Both) -->
+<!-- Player Sources Modal -->
 <div id="playerModal" class="modal-overlay">
   <div class="modal-box">
     <div class="modal-body" id="playerModalBody">
       <h2>Streaming Player Sources</h2>
-      <p>Fill in <b>Embed URLs</b>, <b>Direct External URLs</b>, or both. Sample links (like <code>/player/1368337</code>) or placeholders (<code>{tmdb_id}</code>, <code>{season}</code>, <code>{episode}</code>) both work. Press <b>3</b> during playback to switch players.</p>
+      <p>Fill in <b>Embed URLs</b>, <b>Direct Watch URLs</b>, or both. Every source opens inside the page player first—press <b>3</b> to switch players or <b>7</b> to pop out to an external browser tab.</p>
       
       <div id="playerListContainer"></div>
 
@@ -441,10 +441,10 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
         <label class="modal-label">2. TV Show Embed URL (Optional — e.g. <code>https://cinemaos.tech/player/213375/1/2</code>):</label>
         <input id="inputAddTvUrl" class="modal-input" placeholder="https://cinemaos.tech/player/213375/1/2">
 
-        <label class="modal-label">3. Direct External Browser Movie URL (Optional — e.g. <code>https://cinemaos.me/watch/movie/1368337</code>):</label>
+        <label class="modal-label">3. Direct Watch / External Browser Movie URL (Optional — e.g. <code>https://cinemaos.me/watch/movie/1368337</code>):</label>
         <input id="inputAddExtMovieUrl" class="modal-input" placeholder="https://cinemaos.me/watch/movie/1368337">
 
-        <label class="modal-label">4. Direct External Browser TV URL (Optional — e.g. <code>https://cinemaos.me/watch/tv/213375?season=1&amp;episode=2</code>):</label>
+        <label class="modal-label">4. Direct Watch / External Browser TV URL (Optional — e.g. <code>https://cinemaos.me/watch/tv/213375?season=1&amp;episode=2</code>):</label>
         <input id="inputAddExtTvUrl" class="modal-input" placeholder="https://cinemaos.me/watch/tv/213375?season=1&episode=2">
       </div>
     </div>
@@ -461,21 +461,21 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   <div class="modal-box">
     <div class="modal-body">
       <h2 id="editPlayerTitle">Edit Player</h2>
-      <p>Edit the exact URLs used for embedding and external browser launch. Use <code>{tmdb_id}</code> (or <code>{id}</code>), <code>{season}</code>, and <code>{episode}</code>.</p>
+      <p>Edit the exact URLs used for in-page playback and external browser launch. Use <code>{tmdb_id}</code> (or <code>{id}</code>), <code>{season}</code>, and <code>{episode}</code>.</p>
       
       <label class="modal-label">Player Label:</label>
       <input id="editPlayerName" class="modal-input">
 
       <label class="modal-label">Movie Embed URL (Optional):</label>
-      <input id="editPlayerMovieTpl" class="modal-input" placeholder="Leave empty for External-Only mode">
+      <input id="editPlayerMovieTpl" class="modal-input" placeholder="Leave empty to use Direct Watch Movie URL">
 
       <label class="modal-label">TV Embed URL (Optional):</label>
-      <input id="editPlayerTvTpl" class="modal-input" placeholder="Leave empty for External-Only mode">
+      <input id="editPlayerTvTpl" class="modal-input" placeholder="Leave empty to use Direct Watch TV URL">
 
-      <label class="modal-label">External Browser Movie URL (Optional):</label>
+      <label class="modal-label">Direct Watch / External Browser Movie URL (Optional):</label>
       <input id="editPlayerExtMovieTpl" class="modal-input" placeholder="Leave empty to use Movie Embed URL">
 
-      <label class="modal-label">External Browser TV URL (Optional):</label>
+      <label class="modal-label">Direct Watch / External Browser TV URL (Optional):</label>
       <input id="editPlayerExtTvTpl" class="modal-input" placeholder="Leave empty to use TV Embed URL">
     </div>
 
@@ -594,7 +594,7 @@ function loadShelfPreferences() {
 }
 loadShelfPreferences();
 
-/* Direct URL Player List (Supports Embed-Only, External-Only, or Both) */
+/* Direct URL Player List */
 let playerSources = [];
 let activeSourceIdx = 0;
 let editingPlayerIdx = -1;
@@ -735,11 +735,10 @@ function renderPlayerList() {
     card.className = "player-item-card";
     const mDisplay = p.movieTpl || p.extMovieTpl || "—";
     const tDisplay = p.tvTpl || p.extTvTpl || "—";
-    const modeTag = (!p.movieTpl && !p.tvTpl) ? " (External Only)" : "";
 
     card.innerHTML = `
       <div class="player-item-header">
-        <span class="player-item-title" title="${idx + 1}. ${p.name}">${idx + 1}. ${p.name}${modeTag}</span>
+        <span class="player-item-title" title="${idx + 1}. ${p.name}">${idx + 1}. ${p.name}</span>
         <div style="display:flex;gap:6px;flex-shrink:0;">
           <button class="modal-btn btn-secondary player-edit-btn" style="padding:4px 10px;font-size:12px;" onclick="openEditPlayer(${idx})">✏ Edit</button>
           <button class="modal-btn btn-danger player-del-btn" style="padding:4px 10px;font-size:12px;" onclick="deletePlayer(${idx})">Delete</button>
@@ -800,7 +799,7 @@ document.getElementById("btnAddPlayerSubmit").onclick = () => {
   const extTvVal = document.getElementById("inputAddExtTvUrl").value.trim();
 
   if (!movieVal && !tvVal && !extMovieVal && !extTvVal) {
-    alert("Please provide at least one Movie or TV Show URL (Embed or External).");
+    alert("Please provide at least one Movie or TV Show URL.");
     return;
   }
 
@@ -1710,7 +1709,7 @@ function triggerHudActivity() {
 }
 document.addEventListener("mousemove", triggerHudActivity);
 
-/* Direct URL Execution Engine (Supports Embed & Direct External Browser Modes) */
+/* Direct URL Execution Engine */
 function getResolvedPlayerUrl(playerObj, item, mode = "embed") {
   if (!item || !playerObj) return "";
   const isTV = item.media_type === "tv" || !!item.first_air_date;
@@ -1725,9 +1724,10 @@ function getResolvedPlayerUrl(playerObj, item, mode = "embed") {
       ? (playerObj.extTvTpl || playerObj.tvTpl || playerObj.movieTpl)
       : (playerObj.extMovieTpl || playerObj.movieTpl);
   } else {
+    // Always load locally in the page first (falls back to external template if embed template is empty)
     template = isTV
-      ? (playerObj.tvTpl || playerObj.movieTpl)
-      : playerObj.movieTpl;
+      ? (playerObj.tvTpl || playerObj.extTvTpl || playerObj.movieTpl || playerObj.extMovieTpl)
+      : (playerObj.movieTpl || playerObj.extMovieTpl);
   }
 
   return decodeTokens(template)
@@ -1765,19 +1765,12 @@ function loadPlayerSource() {
   }
 
   const activePlayer = playerSources[activeSourceIdx];
-  const embedUrl = getResolvedPlayerUrl(activePlayer, currentItem, "embed");
+  const pageUrl = getResolvedPlayerUrl(activePlayer, currentItem, "embed");
 
-  // If this player only has External URLs configured (no embed URL), launch external tab directly
-  if (!embedUrl) {
-    launchExternal();
-    closePlayer();
-    return;
-  }
-
-  playerFrame.src = embedUrl;
+  playerFrame.src = pageUrl;
   triggerHudActivity();
 
-  showStreamBanner(`▶ <b>${activePlayer.name}</b> (${activeSourceIdx + 1}/${playerSources.length}) &nbsp;|&nbsp; <span style="color:#a1a1aa;">Switch Player: <b>3</b> &bull; External: <b>7</b></span>`);
+  showStreamBanner(`▶ <b>${activePlayer.name}</b> (${activeSourceIdx + 1}/${playerSources.length}) &nbsp;|&nbsp; <span style="color:#a1a1aa;">Switch Player: <b>3</b> &bull; Open External: <b>7</b></span>`);
 }
 
 function launchExternal() {
