@@ -74,14 +74,14 @@ header {
 }
 .brand-group { display: flex; align-items: baseline; gap: 12px; }
 h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white); margin: 0; }
-.header-actions { display: flex; align-items: center; gap: 10px; }
+.header-actions { display: flex; align-items: center; gap: 8px; }
 #status { color: var(--text-muted); font-size: clamp(12px, 1vw, 14px); font-weight: 500; white-space: nowrap; margin-right: 6px; }
 
 .dpad-nav-item {
   background: rgba(255, 255, 255, 0.08); border: 1.5px solid var(--border-subtle);
-  color: var(--text-main); padding: 7px 14px; border-radius: 9px;
-  font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex;
-  align-items: center; gap: 6px; transition: all 0.2s ease; white-space: nowrap; outline: none;
+  color: var(--text-main); padding: 7px 12px; border-radius: 9px;
+  font-size: 12.5px; font-weight: 600; cursor: pointer; display: inline-flex;
+  align-items: center; gap: 5px; transition: all 0.2s ease; white-space: nowrap; outline: none;
 }
 .dpad-nav-item:hover, .dpad-nav-item.focused {
   background: var(--white); color: #000; border-color: var(--white);
@@ -187,6 +187,7 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
 #resultsGrid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: var(--card-height); gap: var(--row-gap) var(--rail-gap); padding: 16px 4px 50px 4px; scrollbar-width: none; }
 #resultsGrid::-webkit-scrollbar { display: none; }
 
+/* Modals */
 .modal-overlay {
   display: none; position: fixed; inset: 0; z-index: 600;
   background: rgba(0, 0, 0, 0.88);
@@ -269,10 +270,23 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   padding: 10px 14px;
   border-radius: 10px;
   font-family: monospace;
-  font-size: 15px;
+  font-size: 14px;
   color: var(--mint);
   font-weight: 700;
   word-break: break-all;
+}
+.device-id-badge {
+  display: inline-block;
+  background: rgba(250, 204, 21, 0.14);
+  border: 1px solid rgba(250, 204, 21, 0.4);
+  color: var(--gold);
+  font-family: monospace;
+  font-size: 16px;
+  font-weight: 800;
+  padding: 6px 14px;
+  border-radius: 8px;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
 }
 </style>
 </head>
@@ -289,23 +303,16 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
     <button id="btnSearchNav" class="dpad-nav-item" type="button" data-col="0">🔍 Search</button>
     <button id="btnManagePreferences" class="dpad-nav-item" type="button" data-col="1">⚙ Shelves</button>
     <button id="btnManagePlayers" class="dpad-nav-item" type="button" data-col="2">🎬 Players</button>
-    <button id="btnQrRemote" class="dpad-nav-item" type="button" data-col="3">📱 Phone Remote</button>
+    <button id="btnQrRemote" class="dpad-nav-item" type="button" data-col="3">📱 Remote</button>
+    <button id="btnFirstTimeSetup" class="dpad-nav-item" type="button" data-col="4">🔑 Setup</button>
   </div>
 </header>
 
 <main id="home"></main>
 
 <div id="help">
-  <div class="help-keys">
-    <span><span class="key-tag">↑ ↓</span> Shelves</span>
-    <span><span class="key-tag">← →</span> Browse</span>
-    <span><span class="key-tag">Select / 5</span> Play</span>
-    <span><span class="key-tag">3</span> Switch Mirror</span>
-    <span><span class="key-tag">7</span> External</span>
-    <span><span class="key-tag">1</span> Search</span>
-    <span><span class="key-tag">0 / Back</span> Home</span>
-  </div>
-  <div id="phoneConnBadge" style="color:var(--mint);font-weight:600;">📱 Phone Remote Ready</div>
+  <div class="help-keys" id="helpKeysLegend"></div>
+  <div id="phoneConnBadge" style="color:var(--mint);font-weight:600;">📱 Gadget ID: ------</div>
 </div>
 
 <!-- Search View -->
@@ -339,19 +346,64 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   </iframe>
 </div>
 
-<!-- QR Code Phone Remote Modal -->
+<!-- First-Time User Setup Modal (TMDB Key + Initial Player + Remote Config) -->
+<div id="setupModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-body">
+      <h2>Welcome to CineHome Setup</h2>
+      <p>Configure your personal TMDB API key and optional streaming source. Everything is saved locally in your browser.</p>
+
+      <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">1. TMDB v3 API Key (Required if not set on server):</label>
+      <input id="setupTmdbKeyInput" class="modal-input" placeholder="e.g. 970bd0b45df9d662f02f81535049b33c">
+
+      <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">2. Custom Player Watch URL (Optional — dynamically parses <code>{domain}</code> &amp; <code>{id}</code>):</label>
+      <input id="setupCustomUrlInput" class="modal-input" placeholder="e.g. https://cinemaos.tech/player/1400940?theme=ffffff">
+
+      <div class="shelf-toggle-item" id="setupSoundToggleRow" style="margin-top:8px;">
+        <span style="font-size:13.5px;color:#fff;font-weight:600;">Navigation Sound Effects</span>
+        <input type="checkbox" id="setupSoundCheckbox" class="switch-input" checked>
+      </div>
+    </div>
+    <div class="modal-actions-sticky">
+      <button id="btnSaveSetup" class="modal-btn btn-primary" type="button">Save &amp; Launch</button>
+      <button id="btnCloseSetup" class="modal-btn btn-secondary" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- QR Code Phone Remote Modal (Per-Gadget Room Pairing + Key Customizer) -->
 <div id="qrRemoteModal" class="modal-overlay">
   <div class="modal-box" style="text-align:center;">
     <div class="modal-body" style="text-align:center;">
-      <h2>📱 Control TV From Your Phone</h2>
-      <p>Scan this QR code with your phone's camera to open the touch remote and keyboard.</p>
+      <h2>📱 Pair Your Phone Remote</h2>
+      <p>Each gadget gets its own isolated remote session. Scan with your phone camera or enter this Gadget ID:</p>
+      <div id="qrDeviceIdBadge" class="device-id-badge">------</div>
+      <br>
       <div class="qr-card">
-        <img id="qrCodeImage" width="210" height="210" alt="Scan QR Code for Web Remote">
+        <img id="qrCodeImage" width="200" height="200" alt="Scan QR Code for Web Remote">
       </div>
       <div id="qrRemoteUrlText" class="qr-url-box">Loading address...</div>
     </div>
     <div class="modal-actions-sticky" style="justify-content:center;">
+      <button id="btnRegenerateRoomId" class="modal-btn btn-secondary" type="button">🔄 New Gadget ID</button>
+      <button id="btnOpenKeyConfig" class="modal-btn btn-secondary" type="button">⌨ Edit Key Map</button>
       <button id="btnCloseQrModal" class="modal-btn btn-primary" type="button">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Remote Key Binding Customizer Modal -->
+<div id="keyConfigModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-body">
+      <h2>⌨ Remote &amp; Keyboard Bindings</h2>
+      <p>Customize comma-separated keys for each action (supports D-Pad, Numpad, and standard keyboard keys).</p>
+      <div id="keyBindingsList"></div>
+    </div>
+    <div class="modal-actions-sticky">
+      <button id="btnSaveKeyBindings" class="modal-btn btn-primary" type="button">Save Keys</button>
+      <button id="btnResetKeyBindings" class="modal-btn btn-danger" type="button">Reset Defaults</button>
+      <button id="btnCloseKeyConfig" class="modal-btn btn-secondary" type="button">Cancel</button>
     </div>
   </div>
 </div>
@@ -361,17 +413,17 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   <div class="modal-box">
     <div class="modal-body" id="playerModalBody">
       <h2>Streaming Player Sources</h2>
-      <p>Manage your streaming sources. Add new providers by supplying both <b>Movie</b> and <b>Series / TV</b> URLs to prevent playback errors.</p>
+      <p>Add new providers using any movie or TV URL. The <code>{domain}</code> and <code>{id}</code> placeholders are extracted automatically and executed dynamically.</p>
       
       <div id="playerListContainer"></div>
 
       <div style="border-top:1px solid var(--border-subtle);padding-top:14px;margin-top:14px;">
         <h3 style="font-size:14px;margin:0 0 10px;color:var(--white);">+ Add Custom Streaming Source</h3>
-        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">1. Paste Movie URL Example (e.g. <code>https://cinejoy.pk/watch/movie/1400940</code>):</label>
-        <input id="inputAddMovieUrl" class="modal-input" placeholder="https://domain.com/movie/12345">
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">1. Movie URL Example (e.g. <code>https://cinejoy.pk/watch/movie/1400940</code>):</label>
+        <input id="inputAddMovieUrl" class="modal-input" placeholder="https://domain.com/watch/movie/12345">
         
-        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">2. Paste TV Show URL Example (e.g. <code>https://cinemaos.tech/player/213375?theme=ffffff&type=tv&s=1&e=1</code>):</label>
-        <input id="inputAddTvUrl" class="modal-input" placeholder="https://domain.com/tv/12345/1/1 (Optional)">
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">2. TV Show URL Example (e.g. <code>https://cinejoy.pk/watch/tv/213375/1/1</code>):</label>
+        <input id="inputAddTvUrl" class="modal-input" placeholder="https://domain.com/watch/tv/12345/1/1 (Optional)">
       </div>
     </div>
     
@@ -387,12 +439,12 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   <div class="modal-box">
     <div class="modal-body">
       <h2 id="editPlayerTitle">Edit Player</h2>
-      <p>Click any mirror tag to set it as active, remove broken domains with ✕, or add backup domains (.tech, .me, .live).</p>
+      <p>Click any mirror tag to set it as active, remove dead domains with ✕, or add backup domains.</p>
       
       <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Provider Name:</label>
       <input id="editPlayerName" class="modal-input">
 
-      <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Configured Mirrors (Click to set default):</label>
+      <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Configured Mirrors (Click to set active):</label>
       <div id="editModalMirrorsContainer" class="player-mirrors-list" style="margin-bottom:12px;"></div>
 
       <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Add Backup Mirror Domain:</label>
@@ -424,7 +476,7 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
       <div id="shelfPreferencesList"></div>
     </div>
     <div class="modal-actions-sticky">
-      <button id="btnSaveShelfPreferences" class="modal-btn btn-primary" type="button">Apply & Reload</button>
+      <button id="btnSaveShelfPreferences" class="modal-btn btn-primary" type="button">Apply &amp; Reload</button>
       <button id="btnResetShelfPreferences" class="modal-btn btn-danger" type="button">Reset Defaults</button>
       <button id="btnClosePreferences" class="modal-btn btn-secondary" type="button">Cancel</button>
     </div>
@@ -435,6 +487,63 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
 const IMG = "https://image.tmdb.org/t/p/w342";
 const BACKDROP_IMG = "https://image.tmdb.org/t/p/w1280";
 
+/* Per-Gadget Unique Room ID Generation */
+function generateGadgetId() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let out = "";
+  for (let i = 0; i < 6; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  return out;
+}
+
+let gadgetRoomId = localStorage.getItem("cinehome_gadget_room_id");
+if (!gadgetRoomId) {
+  gadgetRoomId = generateGadgetId();
+  localStorage.setItem("cinehome_gadget_room_id", gadgetRoomId);
+}
+document.getElementById("phoneConnBadge").textContent = `📱 Gadget ID: ${gadgetRoomId}`;
+
+/* User-Configurable Key Bindings */
+const DEFAULT_KEY_MAP = {
+  UP: ["2", "ArrowUp", "Up", "Numpad8"],
+  DOWN: ["8", "ArrowDown", "Down", "Numpad2"],
+  LEFT: ["4", "ArrowLeft", "Left", "Numpad4"],
+  RIGHT: ["6", "ArrowRight", "Right", "Numpad6"],
+  SELECT: ["5", "Enter", "Select", "NumpadEnter"],
+  BACK: ["0", "Escape", "Backspace", "BrowserBack", "GoBack", "Numpad0"],
+  SEARCH: ["1", "Numpad1"],
+  MIRROR: ["3", "F3", "Numpad3"],
+  EXTERNAL: ["7", "Numpad7"]
+};
+
+let KEY_MAP = JSON.parse(JSON.stringify(DEFAULT_KEY_MAP));
+try {
+  const savedKeys = localStorage.getItem("cinehome_custom_keymap");
+  if (savedKeys) KEY_MAP = { ...KEY_MAP, ...JSON.parse(savedKeys) };
+} catch (_) {}
+
+let soundEnabled = localStorage.getItem("cinehome_sound_enabled") !== "false";
+
+function updateHelpLegend() {
+  const el = document.getElementById("helpKeysLegend");
+  if (!el) return;
+  el.innerHTML = `
+    <span><span class="key-tag">${KEY_MAP.UP[0]} / ${KEY_MAP.DOWN[0]}</span> Shelves</span>
+    <span><span class="key-tag">${KEY_MAP.LEFT[0]} / ${KEY_MAP.RIGHT[0]}</span> Browse</span>
+    <span><span class="key-tag">${KEY_MAP.SELECT[0]}</span> Play</span>
+    <span><span class="key-tag">${KEY_MAP.MIRROR[0]}</span> Mirror</span>
+    <span><span class="key-tag">${KEY_MAP.EXTERNAL[0]}</span> External</span>
+    <span><span class="key-tag">${KEY_MAP.SEARCH[0]}</span> Search</span>
+    <span><span class="key-tag">${KEY_MAP.BACK[0]}</span> Back</span>
+  `;
+}
+updateHelpLegend();
+
+function matchesAction(e, actionName) {
+  const list = KEY_MAP[actionName] || [];
+  return list.includes(e.key) || list.includes(e.code) || list.includes(String(e.keyCode));
+}
+
+/* Catalog Shelf Definitions */
 const DEFAULT_SHELF_DEFINITIONS = [
   { id: "recent_watched", title: "Recently Watched", isSpecial: "recent", enabled: true },
   { id: "because_watched", title: "Because You Watched (Recommendations)", isSpecial: "because", enabled: true },
@@ -466,6 +575,7 @@ function loadShelfPreferences() {
 }
 loadShelfPreferences();
 
+/* Streaming Players & Dynamic {domain} Execution */
 let playerSources = [
   {
     name: "CinemaOS",
@@ -491,23 +601,6 @@ let playerSources = [
 ];
 let activeSourceIdx = 0;
 let editingPlayerIdx = -1;
-
-const KEY_MAP = {
-  UP: ["2", "ArrowUp", "Up", "Numpad8"],
-  DOWN: ["8", "ArrowDown", "Down", "Numpad2"],
-  LEFT: ["4", "ArrowLeft", "Left", "Numpad4"],
-  RIGHT: ["6", "ArrowRight", "Right", "Numpad6"],
-  SELECT: ["5", "Enter", "Select", "NumpadEnter"],
-  BACK: ["0", "Escape", "Backspace", "BrowserBack", "GoBack", "Numpad0"],
-  SEARCH: ["1", "Numpad1"],
-  MIRROR: ["3", "F3", "Numpad3"],
-  EXTERNAL: ["7", "Numpad7"]
-};
-
-function matchesAction(e, actionName) {
-  const list = KEY_MAP[actionName] || [];
-  return list.includes(e.key) || list.includes(e.code) || list.includes(String(e.keyCode));
-}
 
 function normalizePlayer(p) {
   if (!p) return null;
@@ -537,61 +630,61 @@ function normalizePlayer(p) {
   };
 }
 
-async function syncCustomPlayers() {
+function loadPlayersFromLocal(serverDefaults = null) {
   try {
     const localSaved = localStorage.getItem("cinehome_custom_players");
     if (localSaved) {
       const parsed = JSON.parse(localSaved);
       if (Array.isArray(parsed) && parsed.length) {
         playerSources = parsed.map(normalizePlayer);
+        renderPlayerList();
+        return;
       }
     }
   } catch (e) {}
 
-  try {
-    const r = await fetch("/api/players");
-    const d = await r.json();
-    if (Array.isArray(d.players) && d.players.length) {
-      playerSources = d.players.map(normalizePlayer);
-      localStorage.setItem("cinehome_custom_players", JSON.stringify(playerSources));
-    }
-  } catch (e) {}
-
-  playerSources = playerSources.map(normalizePlayer);
+  if (Array.isArray(serverDefaults) && serverDefaults.length) {
+    playerSources = serverDefaults.map(normalizePlayer);
+  } else {
+    playerSources = playerSources.map(normalizePlayer);
+  }
   renderPlayerList();
 }
 
-function savePlayersToServer() {
+function savePlayersLocally() {
   try {
     localStorage.setItem("cinehome_custom_players", JSON.stringify(playerSources));
   } catch (e) {}
-
-  fetch("/api/players", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ players: playerSources })
-  }).catch(() => {});
 }
 
+/* Dynamic URL Parser: Extracts {domain} and {id} from any Movie or TV URL */
 function parseUrlToTemplate(rawUrl) {
   try {
     const u = new URL(rawUrl.trim());
     const match = u.pathname.match(/\d+/);
-    if (!match) throw new Error("No media ID found in URL");
+    if (!match) throw new Error("No numeric media ID found in URL path");
     const detectedId = match[0];
-    const domain = u.hostname.replace("www.", "");
-    const isTV = u.pathname.includes("tv") || u.pathname.includes("show") || u.pathname.includes("series");
-    
-    let tpl = rawUrl.replace(u.hostname, "{domain}").replace(detectedId, "{id}");
-    
-    return {
-      domain,
-      detectedId,
-      isTV,
-      movieTpl: isTV ? tpl.replace("tv", "movie") : tpl,
-      tvTpl: isTV ? tpl : tpl.replace("movie", "tv") + (tpl.includes("/1/1") || tpl.includes("s=") ? "" : "?theme=ffffff&type=tv&s=1&e=1")
-    };
-  } catch(e) {
+    const domain = u.hostname.replace(/^www\./, "");
+    const isTV = /\/(tv|show|series)\b/i.test(u.pathname) || u.search.includes("season=") || u.search.includes("s=");
+
+    // Replace hostname with {domain} and first numeric ID with {id}
+    let tpl = rawUrl.trim().replace(u.hostname, "{domain}").replace(detectedId, "{id}");
+
+    let movieTpl, tvTpl;
+    if (isTV) {
+      tvTpl = tpl;
+      movieTpl = tpl.replace(/\/(tv|show|series)\b/i, "/movie").replace(/\/1\/1$/, "");
+    } else {
+      movieTpl = tpl;
+      if (/\/movie\b/i.test(tpl)) {
+        tvTpl = tpl.replace(/\/movie\b/i, "/tv") + (tpl.includes("/1/1") || tpl.includes("?") ? "" : "/1/1");
+      } else {
+        tvTpl = tpl + (tpl.includes("?") ? "&type=tv&s=1&e=1" : "/1/1");
+      }
+    }
+
+    return { domain, detectedId, isTV, movieTpl, tvTpl };
+  } catch (e) {
     return null;
   }
 }
@@ -642,7 +735,7 @@ function renderEditModalMirrors() {
       p.activeDomainIdx = dIdx;
       renderEditModalMirrors();
       renderPlayerList();
-      savePlayersToServer();
+      savePlayersLocally();
     };
     container.appendChild(tag);
   });
@@ -655,7 +748,7 @@ window.removeEditMirror = function(dIdx) {
   if (p.activeDomainIdx >= p.domains.length) p.activeDomainIdx = 0;
   renderEditModalMirrors();
   renderPlayerList();
-  savePlayersToServer();
+  savePlayersLocally();
 };
 
 window.openEditPlayer = function(idx) {
@@ -687,7 +780,7 @@ document.getElementById("btnSavePlayerEdit").onclick = () => {
   p.movieTpl = movieTpl;
   p.tvTpl = tvTpl;
   
-  savePlayersToServer();
+  savePlayersLocally();
   renderPlayerList();
   document.getElementById("editPlayerModal").style.display = "none";
   activeModalId = null;
@@ -710,7 +803,7 @@ function addMirrorDomainAction() {
     p.domains.push(newDomain);
     renderEditModalMirrors();
     renderPlayerList();
-    savePlayersToServer();
+    savePlayersLocally();
     input.value = "";
   }
 }
@@ -731,39 +824,44 @@ window.deletePlayer = function(idx) {
   playerSources.splice(idx, 1);
   if (activeSourceIdx >= playerSources.length) activeSourceIdx = 0;
   renderPlayerList();
-  savePlayersToServer();
+  savePlayersLocally();
 };
 
 document.getElementById("btnAddPlayerSubmit").onclick = () => {
   const movieVal = document.getElementById("inputAddMovieUrl").value.trim();
   const tvVal = document.getElementById("inputAddTvUrl").value.trim();
-  if (!movieVal) {
-    alert("Please provide at least a sample movie watch URL.");
+  if (!movieVal && !tvVal) {
+    alert("Please provide at least one watch URL.");
     return;
   }
   
-  const movieParsed = parseUrlToTemplate(movieVal);
-  if (!movieParsed) {
-    alert("Invalid movie URL. Provide a URL containing a media ID (e.g. /movie/1400940)");
+  const primaryRaw = movieVal || tvVal;
+  const primaryParsed = parseUrlToTemplate(primaryRaw);
+  if (!primaryParsed) {
+    alert("Invalid URL. Please include a valid domain and numeric media ID (e.g. https://domain.com/watch/movie/1400940)");
     return;
   }
 
-  let finalTvTpl = movieParsed.tvTpl;
-  if (tvVal) {
+  let finalMovieTpl = primaryParsed.movieTpl;
+  let finalTvTpl = primaryParsed.tvTpl;
+
+  if (movieVal && tvVal) {
     const tvParsed = parseUrlToTemplate(tvVal);
-    if (tvParsed) finalTvTpl = tvParsed.tvTpl;
+    if (tvParsed) {
+      finalTvTpl = tvParsed.tvTpl.replace(tvParsed.domain, "{domain}");
+    }
   }
 
   const newSource = {
-    name: movieParsed.domain,
-    domains: [movieParsed.domain],
+    name: primaryParsed.domain,
+    domains: [primaryParsed.domain],
     activeDomainIdx: 0,
-    movieTpl: movieParsed.movieTpl,
+    movieTpl: finalMovieTpl,
     tvTpl: finalTvTpl
   };
 
   playerSources.push(normalizePlayer(newSource));
-  savePlayersToServer();
+  savePlayersLocally();
   renderPlayerList();
   document.getElementById("inputAddMovieUrl").value = "";
   document.getElementById("inputAddTvUrl").value = "";
@@ -779,31 +877,145 @@ document.getElementById("btnClosePlayerModal").onclick = () => {
   activeModalId = null;
 };
 
-/* QR Phone Remote Modal */
-async function openQrRemoteModal() {
-  const modal = document.getElementById("qrRemoteModal");
+/* First-Time Setup Modal Handlers */
+function openSetupModal() {
+  document.getElementById("setupTmdbKeyInput").value = localStorage.getItem("cinehome_tmdb_api_key") || "";
+  document.getElementById("setupCustomUrlInput").value = "";
+  document.getElementById("setupSoundCheckbox").checked = soundEnabled;
+  document.getElementById("setupModal").style.display = "flex";
+  initModalDpad("setupModal");
+}
+
+document.getElementById("btnFirstTimeSetup").onclick = openSetupModal;
+document.getElementById("setupSoundToggleRow").onclick = () => {
+  const cb = document.getElementById("setupSoundCheckbox");
+  cb.checked = !cb.checked;
+};
+
+document.getElementById("btnSaveSetup").onclick = () => {
+  const keyVal = document.getElementById("setupTmdbKeyInput").value.trim();
+  const customUrlVal = document.getElementById("setupCustomUrlInput").value.trim();
+  soundEnabled = document.getElementById("setupSoundCheckbox").checked;
+
+  if (keyVal) {
+    localStorage.setItem("cinehome_tmdb_api_key", keyVal);
+  }
+  localStorage.setItem("cinehome_sound_enabled", String(soundEnabled));
+  localStorage.setItem("cinehome_setup_completed", "true");
+
+  if (customUrlVal) {
+    const parsed = parseUrlToTemplate(customUrlVal);
+    if (parsed) {
+      playerSources.unshift(normalizePlayer({
+        name: parsed.domain,
+        domains: [parsed.domain],
+        activeDomainIdx: 0,
+        movieTpl: parsed.movieTpl,
+        tvTpl: parsed.tvTpl
+      }));
+      activeSourceIdx = 0;
+      savePlayersLocally();
+      renderPlayerList();
+    }
+  }
+
+  document.getElementById("setupModal").style.display = "none";
+  activeModalId = null;
+  loadHome();
+};
+
+document.getElementById("btnCloseSetup").onclick = () => {
+  localStorage.setItem("cinehome_setup_completed", "true");
+  document.getElementById("setupModal").style.display = "none";
+  activeModalId = null;
+};
+
+/* QR Phone Remote Modal (Per-Gadget Room Pairing) */
+let cachedBaseUrl = window.location.origin;
+
+function renderQrModalContent() {
   const img = document.getElementById("qrCodeImage");
   const urlText = document.getElementById("qrRemoteUrlText");
+  const badge = document.getElementById("qrDeviceIdBadge");
 
+  badge.textContent = gadgetRoomId;
+  const targetUrl = `${cachedBaseUrl}/remote?room=${encodeURIComponent(gadgetRoomId)}`;
+  urlText.textContent = targetUrl;
+  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=210x210&margin=4&data=${encodeURIComponent(targetUrl)}`;
+}
+
+async function openQrRemoteModal() {
+  const modal = document.getElementById("qrRemoteModal");
   modal.style.display = "flex";
   initModalDpad("qrRemoteModal");
+  renderQrModalContent();
 
   try {
-    const r = await fetch("/api/network-info");
+    const r = await fetch("/api/boot-info");
     const info = await r.json();
-    const targetUrl = info.remoteUrl || `${window.location.origin}/remote`;
-    urlText.textContent = targetUrl;
-    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=4&data=${encodeURIComponent(targetUrl)}`;
-  } catch (e) {
-    const fallbackUrl = `${window.location.origin}/remote`;
-    urlText.textContent = fallbackUrl;
-    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=4&data=${encodeURIComponent(fallbackUrl)}`;
-  }
+    if (info.baseUrl) {
+      cachedBaseUrl = info.baseUrl;
+      renderQrModalContent();
+    }
+  } catch (_) {}
 }
+
+document.getElementById("btnRegenerateRoomId").onclick = () => {
+  gadgetRoomId = generateGadgetId();
+  localStorage.setItem("cinehome_gadget_room_id", gadgetRoomId);
+  document.getElementById("phoneConnBadge").textContent = `📱 Gadget ID: ${gadgetRoomId}`;
+  renderQrModalContent();
+  initRemoteEventStream();
+};
 
 document.getElementById("btnQrRemote").onclick = openQrRemoteModal;
 document.getElementById("btnCloseQrModal").onclick = () => {
   document.getElementById("qrRemoteModal").style.display = "none";
+  activeModalId = null;
+};
+
+/* Remote Key Binding Editor */
+document.getElementById("btnOpenKeyConfig").onclick = () => {
+  document.getElementById("qrRemoteModal").style.display = "none";
+  const list = document.getElementById("keyBindingsList");
+  list.innerHTML = "";
+
+  Object.keys(DEFAULT_KEY_MAP).forEach(action => {
+    const row = document.createElement("div");
+    row.style.marginBottom = "10px";
+    row.innerHTML = `
+      <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">${action}:</label>
+      <input class="modal-input key-map-input" data-action="${action}" value="${(KEY_MAP[action] || []).join(", ")}">
+    `;
+    list.appendChild(row);
+  });
+
+  document.getElementById("keyConfigModal").style.display = "flex";
+  initModalDpad("keyConfigModal");
+};
+
+document.getElementById("btnSaveKeyBindings").onclick = () => {
+  document.querySelectorAll(".key-map-input").forEach(inp => {
+    const act = inp.getAttribute("data-action");
+    const keys = inp.value.split(",").map(s => s.trim()).filter(Boolean);
+    if (keys.length) KEY_MAP[act] = keys;
+  });
+  localStorage.setItem("cinehome_custom_keymap", JSON.stringify(KEY_MAP));
+  updateHelpLegend();
+  document.getElementById("keyConfigModal").style.display = "none";
+  activeModalId = null;
+};
+
+document.getElementById("btnResetKeyBindings").onclick = () => {
+  localStorage.removeItem("cinehome_custom_keymap");
+  KEY_MAP = JSON.parse(JSON.stringify(DEFAULT_KEY_MAP));
+  updateHelpLegend();
+  document.getElementById("keyConfigModal").style.display = "none";
+  activeModalId = null;
+};
+
+document.getElementById("btnCloseKeyConfig").onclick = () => {
+  document.getElementById("keyConfigModal").style.display = "none";
   activeModalId = null;
 };
 
@@ -869,6 +1081,7 @@ function getAudioContext() {
 }
 
 function playTickSound() {
+  if (!soundEnabled) return;
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
@@ -886,6 +1099,7 @@ function playTickSound() {
 }
 
 function playSelectSound() {
+  if (!soundEnabled) return;
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
@@ -967,7 +1181,8 @@ const headerNavButtons = [
   document.getElementById("btnSearchNav"),
   document.getElementById("btnManagePreferences"),
   document.getElementById("btnManagePlayers"),
-  document.getElementById("btnQrRemote")
+  document.getElementById("btnQrRemote"),
+  document.getElementById("btnFirstTimeSetup")
 ];
 
 let activeModalId = null;
@@ -976,8 +1191,29 @@ let modalFocusIndex = 0;
 function getModalFocusableElements(modalId) {
   const modal = document.getElementById(modalId);
   if (!modal) return [];
+  if (modalId === "setupModal") {
+    return [
+      document.getElementById("setupTmdbKeyInput"),
+      document.getElementById("setupCustomUrlInput"),
+      document.getElementById("setupSoundToggleRow"),
+      document.getElementById("btnSaveSetup"),
+      document.getElementById("btnCloseSetup")
+    ];
+  }
   if (modalId === "qrRemoteModal") {
-    return [document.getElementById("btnCloseQrModal")];
+    return [
+      document.getElementById("btnRegenerateRoomId"),
+      document.getElementById("btnOpenKeyConfig"),
+      document.getElementById("btnCloseQrModal")
+    ];
+  }
+  if (modalId === "keyConfigModal") {
+    return [
+      ...modal.querySelectorAll(".key-map-input"),
+      document.getElementById("btnSaveKeyBindings"),
+      document.getElementById("btnResetKeyBindings"),
+      document.getElementById("btnCloseKeyConfig")
+    ];
   }
   if (modalId === "preferencesModal") {
     const items = [...modal.querySelectorAll(".shelf-toggle-item")];
@@ -1072,9 +1308,19 @@ function recordRecentMedia(m) {
 async function api(path, timeoutMs = 8000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const userTmdbKey = (localStorage.getItem("cinehome_tmdb_api_key") || "").trim();
+  const headers = userTmdbKey ? { "X-TMDB-Key": userTmdbKey } : {};
+
   try {
-    const r = await fetch("/api/tmdb?path=" + encodeURIComponent(path), { signal: controller.signal });
+    const r = await fetch("/api/tmdb?path=" + encodeURIComponent(path), {
+      signal: controller.signal,
+      headers
+    });
     clearTimeout(timer);
+    if (r.status === 428 || r.status === 401) {
+      openSetupModal();
+      throw Error("TMDB_API_KEY_REQUIRED");
+    }
     if (!r.ok) throw Error("TMDB failed: " + r.status);
     return await r.json();
   } catch(err) {
@@ -1300,17 +1546,16 @@ async function loadHome() {
             if (path) setSmoothAmbientBackdrop(BACKDROP_IMG + path);
           }
         } catch (e) {
+          if (e.message === "TMDB_API_KEY_REQUIRED") {
+            loading = false;
+            statusEl.textContent = "TMDB API Key required — click Setup";
+            return;
+          }
           await new Promise(r => setTimeout(r, 300));
         }
       }
       if (!loaded) {
-        s.rail.innerHTML = "<div style='color:var(--text-muted);font-size:13px;padding:12px;'>Network busy. Hover here to retry.</div>";
-        s.section.onmouseenter = async () => {
-          try {
-            s.items = await getMedia(queueDefinitions[s.index]);
-            renderShelf(s);
-          } catch(e) {}
-        };
+        s.rail.innerHTML = "<div style='color:var(--text-muted);font-size:13px;padding:12px;'>Shelf unavailable. Click Setup to check TMDB API key.</div>";
       }
       await new Promise(r => setTimeout(r, 100));
     }
@@ -1458,6 +1703,7 @@ function triggerHudActivity() {
 }
 document.addEventListener("mousemove", triggerHudActivity);
 
+/* Dynamic {domain} Execution Engine */
 function getResolvedPlayerUrl(playerObj, item) {
   if (!item || !playerObj) return "";
   const isTV = item.media_type === "tv" || !!item.first_air_date;
@@ -1522,7 +1768,7 @@ function toggleUniversalNext() {
   if (currentP.domains && currentP.domains.length > 1) {
     currentP.activeDomainIdx = (currentP.activeDomainIdx + 1) % currentP.domains.length;
     if (currentP.activeDomainIdx !== 0) {
-      savePlayersToServer();
+      savePlayersLocally();
       loadPlayerSource();
       return;
     }
@@ -1530,7 +1776,7 @@ function toggleUniversalNext() {
 
   activeSourceIdx = (activeSourceIdx + 1) % playerSources.length;
   playerSources[activeSourceIdx].activeDomainIdx = 0;
-  savePlayersToServer();
+  savePlayersLocally();
   loadPlayerSource();
 }
 
@@ -1799,7 +2045,7 @@ function moveSearch(dir) {
 
 searchButton.addEventListener("click", () => runSearch());
 
-/* Unified Command Executor (Shared by Keyboard & Phone Web Remote) */
+/* Unified Command Executor */
 function executeCommand(cmd, payload = null) {
   if (cmd === "BACK") {
     if (activeModalId) {
@@ -1928,17 +2174,17 @@ function executeCommand(cmd, payload = null) {
   }
 }
 
-/* Real-Time Phone Web Remote Listener (SSE + Serverless Polling Hybrid) */
+/* Room-Isolated Phone Web Remote Listener */
 let lastProcessedSeq = 0;
+let activeEventSource = null;
 
 function initRemoteEventStream() {
-  const badge = document.getElementById("phoneConnBadge");
+  if (activeEventSource) {
+    try { activeEventSource.close(); } catch (_) {}
+  }
   try {
-    const evtSource = new EventSource("/api/remote-events");
-    evtSource.onopen = () => {
-      if (badge) badge.textContent = "📱 Phone Remote Connected";
-    };
-    evtSource.onmessage = (event) => {
+    activeEventSource = new EventSource(`/api/remote-events?room=${encodeURIComponent(gadgetRoomId)}`);
+    activeEventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         if (data.seq && data.seq <= lastProcessedSeq) return;
@@ -1948,27 +2194,23 @@ function initRemoteEventStream() {
         }
       } catch (_) {}
     };
-    evtSource.onerror = () => {
-      if (badge) badge.textContent = "📱 Phone Remote Ready";
-    };
   } catch (_) {}
+}
 
-  // Lightweight polling fallback for Vercel serverless functions
-  setInterval(async () => {
-    try {
-      const r = await fetch(`/api/remote-poll?since=${lastProcessedSeq}`);
-      const d = await r.json();
-      if (Array.isArray(d.commands)) {
-        for (const cmdObj of d.commands) {
-          if (cmdObj.seq > lastProcessedSeq) {
-            lastProcessedSeq = cmdObj.seq;
-            if (cmdObj.action) executeCommand(cmdObj.action, cmdObj.value);
-          }
+setInterval(async () => {
+  try {
+    const r = await fetch(`/api/remote-poll?room=${encodeURIComponent(gadgetRoomId)}&since=${lastProcessedSeq}`);
+    const d = await r.json();
+    if (Array.isArray(d.commands)) {
+      for (const cmdObj of d.commands) {
+        if (cmdObj.seq > lastProcessedSeq) {
+          lastProcessedSeq = cmdObj.seq;
+          if (cmdObj.action) executeCommand(cmdObj.action, cmdObj.value);
         }
       }
-    } catch (_) {}
-  }, 1500);
-}
+    }
+  } catch (_) {}
+}, 1500);
 
 /* Physical Keyboard / Remote Key Listener */
 document.addEventListener("keydown", e => {
@@ -2038,9 +2280,31 @@ document.addEventListener("keydown", e => {
   else if (matchesAction(e, "SELECT")) { e.preventDefault(); executeCommand("SELECT"); }
 });
 
-syncCustomPlayers();
-loadHome();
-initRemoteEventStream();
+/* Boot Sequence: Checks Server Config & Launches First-Time Setup if Needed */
+async function bootApp() {
+  let bootInfo = { hasServerKey: false, serverPlayers: null, baseUrl: window.location.origin };
+  try {
+    const r = await fetch("/api/boot-info");
+    if (r.ok) bootInfo = await r.json();
+  } catch (_) {}
+
+  if (bootInfo.baseUrl) cachedBaseUrl = bootInfo.baseUrl;
+  loadPlayersFromLocal(bootInfo.serverPlayers);
+  initRemoteEventStream();
+
+  const localKey = (localStorage.getItem("cinehome_tmdb_api_key") || "").trim();
+  const setupDone = localStorage.getItem("cinehome_setup_completed") === "true";
+
+  if (!bootInfo.hasServerKey && !localKey && !setupDone) {
+    openSetupModal();
+    statusEl.textContent = "Complete First-Time Setup to load catalog";
+    return;
+  }
+
+  loadHome();
+}
+
+bootApp();
 </script>
 </body>
 </html>
