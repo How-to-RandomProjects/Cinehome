@@ -240,9 +240,7 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
 .player-item-card { background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; width: 100%; min-width: 0; }
 .player-item-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
 .player-item-title { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.player-mirrors-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.mirror-tag { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); padding: 3px 8px; border-radius: 6px; font-size: 11.5px; color: #fff; display: inline-flex; align-items: center; gap: 6px; }
-.mirror-tag.active-mirror { border-color: var(--white); background: rgba(255, 255, 255, 0.18); font-weight: 700; }
+.player-item-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: monospace; }
 
 .shelf-toggle-item {
   display: flex; align-items: center; justify-content: space-between; padding: 10px 14px;
@@ -342,7 +340,7 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   <div id="playerHudBar" class="player-controls-hud">
     <button id="playerExitTrigger" class="hud-btn" type="button" data-hud-idx="0">✕ Back (0)</button>
     <div style="display:flex;gap:8px;">
-      <button id="btnSwitchPlayerHud" class="hud-btn" type="button" data-hud-idx="1">🔄 Switch Mirror / Player (3)</button>
+      <button id="btnSwitchPlayerHud" class="hud-btn" type="button" data-hud-idx="1">🔄 Switch Player (3)</button>
       <button id="btnLaunchExternalHud" class="hud-btn" type="button" data-hud-idx="2">🚀 Open External (7)</button>
     </div>
   </div>
@@ -356,25 +354,25 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   </iframe>
 </div>
 
-<!-- First-Time User Setup Modal (TMDB Key + Initial Player Setup) -->
+<!-- First-Time User Setup Modal -->
 <div id="setupModal" class="modal-overlay">
   <div class="modal-box">
     <div class="modal-body">
       <h2>Welcome to CineHome Setup</h2>
-      <p>No players or keys are hardcoded. Enter your TMDB v3 API key and add your first streaming player URLs below (saved locally in your browser).</p>
+      <p>Enter your TMDB v3 API key and paste your streaming player URLs directly. Saved locally in your browser.</p>
 
-      <label class="modal-label">1. TMDB v3 API Key (Required if not configured on server):</label>
+      <label class="modal-label">1. TMDB v3 API Key (Required if not set on server):</label>
       <input id="setupTmdbKeyInput" class="modal-input" placeholder="Enter your TMDB v3 API key">
 
-      <label class="modal-label">2. First Player — Movie Embed URL (supports <code>{domain}</code>, <code>{id}</code> / <code>{tmdb_id}</code>):</label>
-      <input id="setupMovieEmbedInput" class="modal-input" placeholder="e.g. https://cinemaos.tech/player/{tmdb_id}">
+      <label class="modal-label">2. Movie Embed URL (e.g. <code>https://cinemaos.tech/player/1368337</code>):</label>
+      <input id="setupMovieEmbedInput" class="modal-input" placeholder="https://cinemaos.tech/player/1368337">
 
-      <label class="modal-label">3. First Player — TV Show Embed URL (supports <code>{domain}</code>, <code>{id}</code>, <code>{season}</code>, <code>{episode}</code>):</label>
-      <input id="setupTvEmbedInput" class="modal-input" placeholder="e.g. https://cinemaos.tech/player/{tmdb_id}/{season}/{episode}">
+      <label class="modal-label">3. TV Show Embed URL (e.g. <code>https://cinemaos.tech/player/213375/1/2</code>):</label>
+      <input id="setupTvEmbedInput" class="modal-input" placeholder="https://cinemaos.tech/player/213375/1/2">
 
-      <label class="modal-label">4. External Browser Watch URL (Optional — used when pressing 7 / Open External):</label>
-      <input id="setupExternalMovieInput" class="modal-input" placeholder="e.g. https://cinemaos.me/watch/movie/{tmdb_id}">
-      <input id="setupExternalTvInput" class="modal-input" placeholder="e.g. https://cinemaos.me/watch/tv/{tmdb_id}?season={season}&episode={episode}">
+      <label class="modal-label">4. Direct External Browser Movie URL (Optional — used when pressing 7 / Open External):</label>
+      <input id="setupExternalMovieInput" class="modal-input" placeholder="e.g. https://cinemaos.me/watch/movie/1368337">
+      <input id="setupExternalTvInput" class="modal-input" placeholder="e.g. https://cinemaos.me/watch/tv/213375?season=1&episode=2">
 
       <div class="shelf-toggle-item" id="setupSoundToggleRow" style="margin-top:8px;">
         <span style="font-size:13.5px;color:#fff;font-weight:600;">Navigation Sound Effects</span>
@@ -388,7 +386,7 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   </div>
 </div>
 
-<!-- QR Code Phone Remote Modal (Per-Gadget Room Pairing + Key Customizer) -->
+<!-- QR Code Phone Remote Modal -->
 <div id="qrRemoteModal" class="modal-overlay">
   <div class="modal-box" style="text-align:center;">
     <div class="modal-body" style="text-align:center;">
@@ -425,69 +423,60 @@ h1 { font-size: clamp(20px, 2.2vw, 30px); font-weight: 800; color: var(--white);
   </div>
 </div>
 
-<!-- Player Sources Modal -->
+<!-- Player Sources Modal (Direct URL Entry) -->
 <div id="playerModal" class="modal-overlay">
   <div class="modal-box">
     <div class="modal-body" id="playerModalBody">
       <h2>Streaming Player Sources</h2>
-      <p>Add providers using sample URLs or placeholders (<code>{domain}</code>, <code>{tmdb_id}</code>, <code>{season}</code>, <code>{episode}</code>).</p>
+      <p>Paste your Movie and TV Show URLs directly (sample links like <code>/player/1368337</code> or placeholders like <code>{tmdb_id}</code>, <code>{season}</code>, <code>{episode}</code> both work). Press <b>3</b> during playback to cycle through all added players.</p>
       
       <div id="playerListContainer"></div>
 
       <div style="border-top:1px solid var(--border-subtle);padding-top:14px;margin-top:14px;">
-        <h3 style="font-size:14px;margin:0 0 10px;color:var(--white);">+ Add Custom Streaming Source</h3>
+        <h3 style="font-size:14px;margin:0 0 10px;color:var(--white);">+ Add Player Source</h3>
         
         <label class="modal-label">1. Movie Embed URL (e.g. <code>https://cinemaos.tech/player/1368337</code>):</label>
-        <input id="inputAddMovieUrl" class="modal-input" placeholder="https://domain.com/player/{tmdb_id}">
+        <input id="inputAddMovieUrl" class="modal-input" placeholder="https://cinemaos.tech/player/1368337">
         
         <label class="modal-label">2. TV Show Embed URL (e.g. <code>https://cinemaos.tech/player/213375/1/2</code>):</label>
-        <input id="inputAddTvUrl" class="modal-input" placeholder="https://domain.com/player/{tmdb_id}/{season}/{episode}">
+        <input id="inputAddTvUrl" class="modal-input" placeholder="https://cinemaos.tech/player/213375/1/2">
 
         <label class="modal-label">3. Direct External Browser Movie URL (Optional — e.g. <code>https://cinemaos.me/watch/movie/1368337</code>):</label>
-        <input id="inputAddExtMovieUrl" class="modal-input" placeholder="https://domain.com/watch/movie/{tmdb_id}">
+        <input id="inputAddExtMovieUrl" class="modal-input" placeholder="https://cinemaos.me/watch/movie/1368337">
 
         <label class="modal-label">4. Direct External Browser TV URL (Optional — e.g. <code>https://cinemaos.me/watch/tv/213375?season=1&amp;episode=2</code>):</label>
-        <input id="inputAddExtTvUrl" class="modal-input" placeholder="https://domain.com/watch/tv/{tmdb_id}?season={season}&amp;episode={episode}">
+        <input id="inputAddExtTvUrl" class="modal-input" placeholder="https://cinemaos.me/watch/tv/213375?season=1&episode=2">
       </div>
     </div>
     
     <div class="modal-actions-sticky">
-      <button id="btnAddPlayerSubmit" class="modal-btn btn-primary" type="button">Add Source</button>
+      <button id="btnAddPlayerSubmit" class="modal-btn btn-primary" type="button">Add Player</button>
       <button id="btnClosePlayerModal" class="modal-btn btn-secondary" type="button">Close</button>
     </div>
   </div>
 </div>
 
-<!-- Edit Player / Add Mirrors Modal -->
+<!-- Edit Player Modal (Direct URL Editing) -->
 <div id="editPlayerModal" class="modal-overlay">
   <div class="modal-box">
     <div class="modal-body">
       <h2 id="editPlayerTitle">Edit Player</h2>
-      <p>Click any mirror tag to set it as active, remove dead domains with ✕, or add backup domains. Placeholders: <code>{domain}</code>, <code>{tmdb_id}</code>, <code>{season}</code>, <code>{episode}</code>.</p>
+      <p>Edit the exact URLs used for embedding and external browser launch. Use <code>{tmdb_id}</code> (or <code>{id}</code>), <code>{season}</code>, and <code>{episode}</code>.</p>
       
-      <label class="modal-label">Provider Name:</label>
+      <label class="modal-label">Player Label:</label>
       <input id="editPlayerName" class="modal-input">
 
-      <label class="modal-label">Configured Mirrors (Click to set active):</label>
-      <div id="editModalMirrorsContainer" class="player-mirrors-list" style="margin-bottom:12px;"></div>
-
-      <label class="modal-label">Add Backup Mirror Domain:</label>
-      <div style="display:flex;gap:8px;margin-bottom:14px;">
-        <input id="addMirrorInput" class="modal-input" style="margin-bottom:0;" placeholder="e.g. cinemaos.me">
-        <button id="btnAddMirrorDomain" class="modal-btn btn-secondary" type="button">+ Add</button>
-      </div>
-
-      <label class="modal-label">Movie Embed Template:</label>
+      <label class="modal-label">Movie Embed URL:</label>
       <input id="editPlayerMovieTpl" class="modal-input">
 
-      <label class="modal-label">TV Embed Template:</label>
+      <label class="modal-label">TV Embed URL:</label>
       <input id="editPlayerTvTpl" class="modal-input">
 
-      <label class="modal-label">External Browser Movie Template (Optional):</label>
-      <input id="editPlayerExtMovieTpl" class="modal-input" placeholder="Leave empty to use Movie Embed Template">
+      <label class="modal-label">External Browser Movie URL (Optional):</label>
+      <input id="editPlayerExtMovieTpl" class="modal-input" placeholder="Leave empty to use Movie Embed URL">
 
-      <label class="modal-label">External Browser TV Template (Optional):</label>
-      <input id="editPlayerExtTvTpl" class="modal-input" placeholder="Leave empty to use TV Embed Template">
+      <label class="modal-label">External Browser TV URL (Optional):</label>
+      <input id="editPlayerExtTvTpl" class="modal-input" placeholder="Leave empty to use TV Embed URL">
     </div>
 
     <div class="modal-actions-sticky">
@@ -560,7 +549,7 @@ function updateHelpLegend() {
     <span><span class="key-tag">${KEY_MAP.UP[0]} / ${KEY_MAP.DOWN[0]}</span> Shelves</span>
     <span><span class="key-tag">${KEY_MAP.LEFT[0]} / ${KEY_MAP.RIGHT[0]}</span> Browse</span>
     <span><span class="key-tag">${KEY_MAP.SELECT[0]}</span> Play</span>
-    <span><span class="key-tag">${KEY_MAP.MIRROR[0]}</span> Mirror</span>
+    <span><span class="key-tag">${KEY_MAP.MIRROR[0]}</span> Switch Player</span>
     <span><span class="key-tag">${KEY_MAP.EXTERNAL[0]}</span> External</span>
     <span><span class="key-tag">${KEY_MAP.SEARCH[0]}</span> Search</span>
     <span><span class="key-tag">${KEY_MAP.BACK[0]}</span> Back</span>
@@ -605,30 +594,24 @@ function loadShelfPreferences() {
 }
 loadShelfPreferences();
 
-/* Zero Hardcoded Players: Populated via First-Time Setup, Server Config, or Manage Players */
+/* Direct URL Player List (No Hardcoded Players or Mirrors) */
 let playerSources = [];
 let activeSourceIdx = 0;
 let editingPlayerIdx = -1;
 
-/* Smart URL Template Parser:
-   Handles both literal sample URLs (e.g. https://cinemaos.tech/player/213375/1/2 or
-   https://cinemaos.me/watch/tv/213375?season=1&episode=2) AND pre-templated URLs
-   with {domain}, {id}, {tmdb_id}, {season}, {episode}. */
-function parseUrlToTemplate(rawUrl, forceType = null) {
+/* Direct URL Template Parser:
+   Keeps the exact URL entered by the user and converts sample IDs/season/episode
+   numbers into {tmdb_id}, {season}, and {episode} placeholders. */
+function parseDirectUrl(rawUrl, forceType = null) {
   const trimmed = (rawUrl || "").trim();
   if (!trimmed) return null;
 
   try {
-    // Allow URLs that already contain {domain} by temporarily substituting a dummy host for URL parsing
-    const hasDomainToken = trimmed.includes("{domain}");
-    const parseable = hasDomainToken ? trimmed.replaceAll("{domain}", "placeholder-domain.local") : trimmed;
-    const u = new URL(parseable);
-    const domain = hasDomainToken ? "" : u.hostname.replace(/^www\./, "");
-
+    const u = new URL(trimmed);
+    const label = u.hostname.replace(/^www\./, "");
     let path = u.pathname;
     let search = u.search;
 
-    // 1. Replace numeric IDs or existing ID tokens in pathname
     const hasIdToken = /\{(tmdb_)?id\}/i.test(trimmed);
     const isTV = forceType === "tv"
       || /\/(tv|show|series)\b/i.test(path)
@@ -636,17 +619,14 @@ function parseUrlToTemplate(rawUrl, forceType = null) {
       || /\{season\}|\{s\}/i.test(trimmed);
 
     if (!hasIdToken) {
-      // Check for /tv/{id}/{season}/{episode} or /player/{id}/{season}/{episode}
       const tvTriple = path.match(/^(.*\/)(\d+)\/(\d+)\/(\d+)(\/?)$/);
       if (tvTriple) {
         path = `${tvTriple[1]}{tmdb_id}/{season}/{episode}${tvTriple[5]}`;
       } else {
-        // Replace first numeric segment in path with {tmdb_id}
         path = path.replace(/\/(\d+)(?=\/|$)/, "/{tmdb_id}");
       }
     }
 
-    // 2. Replace season/episode query params if present (e.g. ?season=1&episode=2 or ?s=1&e=1)
     if (search) {
       search = search
         .replace(/([?&]season=)\d+/i, "$1{season}")
@@ -655,13 +635,11 @@ function parseUrlToTemplate(rawUrl, forceType = null) {
         .replace(/([?&]e=)\d+/i, "$1{episode}");
     }
 
-    const hostPart = "{domain}";
-    const fullTpl = `${u.protocol}//${hostPart}${path}${search}`;
+    const fullTpl = `${u.origin}${path}${search}`;
 
     let movieTpl, tvTpl;
     if (isTV) {
       tvTpl = fullTpl;
-      // Derive movie template cleanly if user only pasted a TV URL
       movieTpl = fullTpl
         .replace(/\/(tv|show|series)\b/i, "/movie")
         .replace(/\/\{season\}\/\{episode\}/gi, "")
@@ -671,18 +649,16 @@ function parseUrlToTemplate(rawUrl, forceType = null) {
         .replace(/\?$/, "");
     } else {
       movieTpl = fullTpl;
-      // Derive TV template cleanly if user only pasted a Movie URL
       if (/\/watch\/movie\b/i.test(fullTpl)) {
         tvTpl = fullTpl.replace(/\/watch\/movie\b/i, "/watch/tv") + (search ? "&season={season}&episode={episode}" : "?season={season}&episode={episode}");
       } else if (/\/movie\b/i.test(fullTpl)) {
         tvTpl = fullTpl.replace(/\/movie\b/i, "/tv") + (search ? "" : "/{season}/{episode}");
       } else {
-        // Standard /player/{tmdb_id} -> /player/{tmdb_id}/{season}/{episode}
-        tvTpl = `${u.protocol}//${hostPart}${path.replace(/\/$/, "")}/{season}/{episode}${search}`;
+        tvTpl = `${u.origin}${path.replace(/\/$/, "")}/{season}/{episode}${search}`;
       }
     }
 
-    return { domain, isTV, movieTpl, tvTpl, rawTpl: fullTpl };
+    return { label, isTV, movieTpl, tvTpl, rawTpl: fullTpl };
   } catch (e) {
     return null;
   }
@@ -690,40 +666,30 @@ function parseUrlToTemplate(rawUrl, forceType = null) {
 
 function normalizePlayer(p) {
   if (!p) return null;
-  let domains = Array.isArray(p.domains) ? p.domains.filter(Boolean) : [];
-  if (!domains.length && p.domain) domains = [p.domain];
-
   let movieTpl = p.movieTpl || "";
   let tvTpl = p.tvTpl || "";
   let extMovieTpl = p.extMovieTpl || "";
   let extTvTpl = p.extTvTpl || "";
 
-  // Ensure any literal domain matching the list is tokenized to {domain}
-  domains.forEach(d => {
-    const escaped = d.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const rx = new RegExp(`https?://(?:www\\.)?${escaped}`, "gi");
-    movieTpl = movieTpl.replace(rx, "https://{domain}");
-    tvTpl = tvTpl.replace(rx, "https://{domain}");
-    if (extMovieTpl) extMovieTpl = extMovieTpl.replace(rx, "https://{domain}");
-    if (extTvTpl) extTvTpl = extTvTpl.replace(rx, "https://{domain}");
-  });
-
-  if (!domains.length) {
-    try {
-      const u = new URL(movieTpl.replaceAll("{domain}", "example.com").replace(/\{[^}]+\}/g, "1"));
-      if (u.hostname !== "example.com") domains = [u.hostname];
-    } catch (_) {}
+  // Migrate any legacy {domain} template using its stored domain
+  const legacyDomain = (Array.isArray(p.domains) && p.domains[p.activeDomainIdx || 0]) || p.domain || "";
+  if (legacyDomain) {
+    movieTpl = movieTpl.replaceAll("{domain}", legacyDomain);
+    tvTpl = tvTpl.replaceAll("{domain}", legacyDomain);
+    extMovieTpl = extMovieTpl.replaceAll("{domain}", legacyDomain);
+    extTvTpl = extTvTpl.replaceAll("{domain}", legacyDomain);
   }
 
-  return {
-    name: p.name || domains[0] || "Custom Player",
-    domains: [...new Set(domains)],
-    activeDomainIdx: typeof p.activeDomainIdx === "number" && p.activeDomainIdx < domains.length ? p.activeDomainIdx : 0,
-    movieTpl,
-    tvTpl,
-    extMovieTpl,
-    extTvTpl
-  };
+  let label = p.name || "";
+  if (!label) {
+    try {
+      label = new URL((movieTpl || tvTpl).replace(/\{[^}]+\}/g, "1")).hostname.replace(/^www\./, "");
+    } catch (_) {
+      label = "Custom Player";
+    }
+  }
+
+  return { name: label, movieTpl, tvTpl, extMovieTpl, extTvTpl };
 }
 
 function loadPlayersFromLocal(serverDefaults = null) {
@@ -758,21 +724,13 @@ function renderPlayerList() {
   container.innerHTML = "";
 
   if (!playerSources.length) {
-    container.innerHTML = `<div class="empty-players-banner">No players configured yet. Add your Movie and TV Show URLs below to start streaming.</div>`;
+    container.innerHTML = `<div class="empty-players-banner">No players configured yet. Paste your Movie and TV Show URLs below to add your first player.</div>`;
     return;
   }
 
   playerSources.forEach((p, idx) => {
     const card = document.createElement("div");
     card.className = "player-item-card";
-    
-    const mirrorTags = (p.domains || []).map((dom, dIdx) => `
-      <div class="mirror-tag ${dIdx === p.activeDomainIdx ? 'active-mirror' : ''}">
-        <span class="mirror-tag-text">${dom}</span>
-        ${dIdx === p.activeDomainIdx ? "<b>(active)</b>" : ""}
-      </div>
-    `).join("");
-
     card.innerHTML = `
       <div class="player-item-header">
         <span class="player-item-title" title="${idx + 1}. ${p.name}">${idx + 1}. ${p.name}</span>
@@ -781,45 +739,12 @@ function renderPlayerList() {
           <button class="modal-btn btn-danger player-del-btn" style="padding:4px 10px;font-size:12px;" onclick="deletePlayer(${idx})">Delete</button>
         </div>
       </div>
-      <div class="player-mirrors-list">${mirrorTags}</div>
+      <div class="player-item-sub" title="${p.movieTpl}">Movie: ${p.movieTpl}</div>
+      <div class="player-item-sub" title="${p.tvTpl}">TV: ${p.tvTpl}</div>
     `;
     container.appendChild(card);
   });
 }
-
-function renderEditModalMirrors() {
-  if (editingPlayerIdx < 0) return;
-  const p = playerSources[editingPlayerIdx];
-  const container = document.getElementById("editModalMirrorsContainer");
-  container.innerHTML = "";
-  
-  p.domains.forEach((dom, dIdx) => {
-    const isAct = dIdx === (p.activeDomainIdx || 0);
-    const tag = document.createElement("div");
-    tag.className = "mirror-tag" + (isAct ? " active-mirror" : "");
-    tag.innerHTML = `
-      <span class="mirror-tag-text" style="cursor:pointer;">${dom} ${isAct ? "<b>(active)</b>" : ""}</span>
-      ${p.domains.length > 1 ? `<span style="cursor:pointer;color:#f87171;font-weight:bold;margin-left:4px;" onclick="removeEditMirror(${dIdx})" title="Remove domain">✕</span>` : ""}
-    `;
-    tag.querySelector(".mirror-tag-text").onclick = () => {
-      p.activeDomainIdx = dIdx;
-      renderEditModalMirrors();
-      renderPlayerList();
-      savePlayersLocally();
-    };
-    container.appendChild(tag);
-  });
-}
-
-window.removeEditMirror = function(dIdx) {
-  if (editingPlayerIdx < 0) return;
-  const p = playerSources[editingPlayerIdx];
-  p.domains.splice(dIdx, 1);
-  if (p.activeDomainIdx >= p.domains.length) p.activeDomainIdx = 0;
-  renderEditModalMirrors();
-  renderPlayerList();
-  savePlayersLocally();
-};
 
 window.openEditPlayer = function(idx) {
   editingPlayerIdx = idx;
@@ -830,8 +755,6 @@ window.openEditPlayer = function(idx) {
   document.getElementById("editPlayerTvTpl").value = p.tvTpl;
   document.getElementById("editPlayerExtMovieTpl").value = p.extMovieTpl || "";
   document.getElementById("editPlayerExtTvTpl").value = p.extTvTpl || "";
-  document.getElementById("addMirrorInput").value = "";
-  renderEditModalMirrors();
   document.getElementById("editPlayerModal").style.display = "flex";
   initModalDpad("editPlayerModal");
 };
@@ -857,31 +780,6 @@ document.getElementById("btnCancelPlayerEdit").onclick = () => {
   activeModalId = null;
 };
 
-function addMirrorDomainAction() {
-  if (editingPlayerIdx < 0) return;
-  const input = document.getElementById("addMirrorInput");
-  let newDomain = input.value.trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '').trim();
-  if (!newDomain) return;
-  const p = playerSources[editingPlayerIdx];
-  if (!Array.isArray(p.domains)) p.domains = [];
-  
-  if (!p.domains.includes(newDomain)) {
-    p.domains.push(newDomain);
-    renderEditModalMirrors();
-    renderPlayerList();
-    savePlayersLocally();
-    input.value = "";
-  }
-}
-
-document.getElementById("btnAddMirrorDomain").onclick = addMirrorDomainAction;
-document.getElementById("addMirrorInput").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    addMirrorDomainAction();
-  }
-});
-
 window.deletePlayer = function(idx) {
   playerSources.splice(idx, 1);
   if (activeSourceIdx >= playerSources.length) activeSourceIdx = 0;
@@ -900,45 +798,37 @@ document.getElementById("btnAddPlayerSubmit").onclick = () => {
     return;
   }
 
-  const movieParsed = movieVal ? parseUrlToTemplate(movieVal, "movie") : null;
-  const tvParsed = tvVal ? parseUrlToTemplate(tvVal, "tv") : null;
+  const movieParsed = movieVal ? parseDirectUrl(movieVal, "movie") : null;
+  const tvParsed = tvVal ? parseDirectUrl(tvVal, "tv") : null;
 
   if (!movieParsed && !tvParsed) {
-    alert("Could not parse URL. Include a valid URL or placeholders like https://domain.com/player/{tmdb_id}");
+    alert("Please enter a valid URL (e.g. https://cinemaos.tech/player/1368337).");
     return;
   }
 
-  const primaryDomain = (movieParsed && movieParsed.domain) || (tvParsed && tvParsed.domain) || "custom-player";
-  const domains = [primaryDomain];
-  if (tvParsed && tvParsed.domain && !domains.includes(tvParsed.domain)) {
-    domains.push(tvParsed.domain);
-  }
-
-  const finalMovieTpl = movieParsed ? movieParsed.movieTpl : tvParsed.movieTpl;
+  const label = (movieParsed && movieParsed.label) || (tvParsed && tvParsed.label) || "Custom Player";
+  const finalMovieTpl = movieParsed ? movieParsed.rawTpl : tvParsed.movieTpl;
   const finalTvTpl = tvParsed ? tvParsed.rawTpl : movieParsed.tvTpl;
 
   let finalExtMovieTpl = "";
   let finalExtTvTpl = "";
   if (extMovieVal) {
-    const pExtM = parseUrlToTemplate(extMovieVal, "movie");
+    const pExtM = parseDirectUrl(extMovieVal, "movie");
     finalExtMovieTpl = pExtM ? pExtM.rawTpl : extMovieVal;
   }
   if (extTvVal) {
-    const pExtT = parseUrlToTemplate(extTvVal, "tv");
+    const pExtT = parseDirectUrl(extTvVal, "tv");
     finalExtTvTpl = pExtT ? pExtT.rawTpl : extTvVal;
   }
 
-  const newSource = {
-    name: primaryDomain,
-    domains,
-    activeDomainIdx: 0,
+  playerSources.push(normalizePlayer({
+    name: label,
     movieTpl: finalMovieTpl,
     tvTpl: finalTvTpl,
     extMovieTpl: finalExtMovieTpl,
     extTvTpl: finalExtTvTpl
-  };
+  }));
 
-  playerSources.push(normalizePlayer(newSource));
   savePlayersLocally();
   renderPlayerList();
 
@@ -991,18 +881,16 @@ document.getElementById("btnSaveSetup").onclick = () => {
   localStorage.setItem("cinehome_setup_completed", "true");
 
   if (movieVal || tvVal) {
-    const movieParsed = movieVal ? parseUrlToTemplate(movieVal, "movie") : null;
-    const tvParsed = tvVal ? parseUrlToTemplate(tvVal, "tv") : null;
+    const movieParsed = movieVal ? parseDirectUrl(movieVal, "movie") : null;
+    const tvParsed = tvVal ? parseDirectUrl(tvVal, "tv") : null;
     if (movieParsed || tvParsed) {
-      const domain = (movieParsed && movieParsed.domain) || (tvParsed && tvParsed.domain) || "custom-player";
-      const pExtM = extMovieVal ? parseUrlToTemplate(extMovieVal, "movie") : null;
-      const pExtT = extTvVal ? parseUrlToTemplate(extTvVal, "tv") : null;
+      const label = (movieParsed && movieParsed.label) || (tvParsed && tvParsed.label) || "Custom Player";
+      const pExtM = extMovieVal ? parseDirectUrl(extMovieVal, "movie") : null;
+      const pExtT = extTvVal ? parseDirectUrl(extTvVal, "tv") : null;
 
       playerSources.unshift(normalizePlayer({
-        name: domain,
-        domains: [domain],
-        activeDomainIdx: 0,
-        movieTpl: movieParsed ? movieParsed.movieTpl : tvParsed.movieTpl,
+        name: label,
+        movieTpl: movieParsed ? movieParsed.rawTpl : tvParsed.movieTpl,
         tvTpl: tvParsed ? tvParsed.rawTpl : movieParsed.tvTpl,
         extMovieTpl: pExtM ? pExtM.rawTpl : extMovieVal,
         extTvTpl: pExtT ? pExtT.rawTpl : extTvVal
@@ -1331,8 +1219,6 @@ function getModalFocusableElements(modalId) {
   if (modalId === "editPlayerModal") {
     return [
       document.getElementById("editPlayerName"),
-      document.getElementById("addMirrorInput"),
-      document.getElementById("btnAddMirrorDomain"),
       document.getElementById("editPlayerMovieTpl"),
       document.getElementById("editPlayerTvTpl"),
       document.getElementById("editPlayerExtMovieTpl"),
@@ -1807,7 +1693,7 @@ function triggerHudActivity() {
 }
 document.addEventListener("mousemove", triggerHudActivity);
 
-/* Dynamic {domain} & Season/Episode URL Resolver (Supports Embed & Direct External Modes) */
+/* Direct URL Execution Engine (Supports Embed & Direct External Browser Modes) */
 function getResolvedPlayerUrl(playerObj, item, mode = "embed") {
   if (!item || !playerObj) return "";
   const isTV = item.media_type === "tv" || !!item.first_air_date;
@@ -1815,9 +1701,6 @@ function getResolvedPlayerUrl(playerObj, item, mode = "embed") {
   const title = encodeURIComponent(item.title || item.name || "");
   const season = encodeURIComponent(item.season || 1);
   const episode = encodeURIComponent(item.episode || 1);
-
-  const domains = Array.isArray(playerObj.domains) && playerObj.domains.length ? playerObj.domains : [];
-  const activeDomain = domains[playerObj.activeDomainIdx || 0] || domains[0] || "";
 
   let template = "";
   if (mode === "external") {
@@ -1830,16 +1713,7 @@ function getResolvedPlayerUrl(playerObj, item, mode = "embed") {
       : playerObj.movieTpl;
   }
 
-  let resolved = template || "";
-  if (activeDomain) {
-    if (resolved.includes("{domain}")) {
-      resolved = resolved.replaceAll("{domain}", activeDomain);
-    } else {
-      resolved = resolved.replace(/^https?:\/\/[^\/]+/, `https://${activeDomain}`);
-    }
-  }
-
-  return resolved
+  return (template || "")
     .replaceAll("{tmdb_id}", id)
     .replaceAll("{id}", id)
     .replaceAll("{season}", season)
@@ -1879,10 +1753,7 @@ function loadPlayerSource() {
   playerFrame.src = embedUrl;
   triggerHudActivity();
 
-  const domains = Array.isArray(activePlayer.domains) && activePlayer.domains.length ? activePlayer.domains : [activePlayer.name];
-  const activeDomain = domains[activePlayer.activeDomainIdx || 0] || domains[0];
-
-  showStreamBanner(`▶ <b>${activePlayer.name}</b> (${activeDomain}) &nbsp;|&nbsp; <span style="color:#a1a1aa;">Mirror: <b>3</b> &bull; External: <b>7</b></span>`);
+  showStreamBanner(`▶ <b>${activePlayer.name}</b> (${activeSourceIdx + 1}/${playerSources.length}) &nbsp;|&nbsp; <span style="color:#a1a1aa;">Switch Player: <b>3</b> &bull; External: <b>7</b></span>`);
 }
 
 function launchExternal() {
@@ -1896,20 +1767,7 @@ function launchExternal() {
 function toggleUniversalNext() {
   if (!playerSources.length) return;
   playTickSound();
-  const currentP = playerSources[activeSourceIdx];
-
-  if (currentP.domains && currentP.domains.length > 1) {
-    currentP.activeDomainIdx = (currentP.activeDomainIdx + 1) % currentP.domains.length;
-    if (currentP.activeDomainIdx !== 0) {
-      savePlayersLocally();
-      loadPlayerSource();
-      return;
-    }
-  }
-
   activeSourceIdx = (activeSourceIdx + 1) % playerSources.length;
-  playerSources[activeSourceIdx].activeDomainIdx = 0;
-  savePlayersLocally();
   loadPlayerSource();
 }
 
@@ -2418,7 +2276,7 @@ document.addEventListener("keydown", e => {
   else if (matchesAction(e, "SELECT")) { e.preventDefault(); executeCommand("SELECT"); }
 });
 
-/* Boot Sequence: Checks Server Config & Launches First-Time Setup if Unconfigured */
+/* Boot Sequence */
 async function bootApp() {
   let bootInfo = { hasServerKey: false, serverPlayers: null, baseUrl: window.location.origin };
   try {
